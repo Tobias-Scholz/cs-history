@@ -1,12 +1,15 @@
-const axios = require('axios')
-const { neon } = require('neondatabase/serverless')
+import axios from 'axios'
+import { neon } from '@neondatabase/serverless'
+import type { Context } from '@netlify/functions'
 
-const handler = async (event, context) => {
+export default async (req: Request, context: Context) => {
+  if (!process.env.POSTGRES_CONNECTION_STRING || !process.env.STEAM_API_KEY) throw new Error('missing env')
+
   const sql = neon(process.env.POSTGRES_CONNECTION_STRING)
 
-  let data
+  let data: { mySteamId: string; query: string }
   try {
-    data = JSON.parse(event.body)
+    data = await req.json()
   } catch (error) {
     return response(400, { error: 'Invalid request body' })
   }
@@ -37,17 +40,11 @@ const handler = async (event, context) => {
   return response(200, { steamId, matches })
 }
 
-function response(code, body) {
-  return {
-    statusCode: code,
-    body: JSON.stringify(body),
-    headers: {
-      'Content-Type': 'application/json'
-    }
-  }
+function response(code: number, body: any) {
+  return new Response(JSON.stringify(body), { status: code })
 }
 
-async function getSteam64Id(query) {
+async function getSteam64Id(query: string) {
   const steam64Regex = /\d{17}/
   const steam64UrlRegex = /https:\/\/steamcommunity\.com\/profiles\/(\d{17})/
   const steamVanityRegex = /https:\/\/steamcommunity\.com\/id\/([a-zA-Z0-9_-]+)\/?/
@@ -73,5 +70,3 @@ async function getSteam64Id(query) {
   }
   throw Error('did not match regex')
 }
-
-export { handler }
