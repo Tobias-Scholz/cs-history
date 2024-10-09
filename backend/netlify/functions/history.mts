@@ -46,7 +46,7 @@ export default async (req: Request, context: Context) => {
 function response(code: number, body: any) {
   const headers = {
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': 'http://localhost:3000',
+    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type'
   }
