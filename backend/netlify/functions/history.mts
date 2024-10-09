@@ -44,7 +44,14 @@ export default async (req: Request, context: Context) => {
 }
 
 function response(code: number, body: any) {
-  return new Response(JSON.stringify(body), { status: code })
+  const headers = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': 'http://localhost:3000',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type'
+  }
+
+  return new Response(JSON.stringify(body), { status: code, headers })
 }
 
 async function getSteam64Id(query: string) {
