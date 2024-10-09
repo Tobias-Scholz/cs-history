@@ -1,5 +1,5 @@
-import axios from 'axios'
-import { neon } from '@neondatabase/serverless'
+const axios = require('axios')
+const { neon } = require('neondatabase/serverless')
 
 const handler = async (event, context) => {
   const sql = neon(process.env.POSTGRES_CONNECTION_STRING)
