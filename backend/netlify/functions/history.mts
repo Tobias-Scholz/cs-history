@@ -25,7 +25,8 @@ export default async (req: Request, context: Context) => {
     return response(400, { error: 'Invalid Url' })
   }
 
-  const matches = await sql`
+  const [matches, { name, profilePictureUrl }] = await Promise.all([
+    sql`
     SELECT true as vs, *
     FROM matches_v2
     WHERE ${data.mySteamId} = ANY(players_team1) AND ${steamId} = ANY(players_team2) 
@@ -35,9 +36,11 @@ export default async (req: Request, context: Context) => {
     FROM matches_v2
     WHERE ${data.mySteamId} = ANY(players_team1) AND ${steamId} = ANY(players_team1) 
       OR ${data.mySteamId} = ANY(players_team2) AND ${steamId} = ANY(players_team2)
-  `
+  `,
+    getSteamUserInfo(steamId)
+  ])
 
-  return response(200, { steamId, matches })
+  return response(200, { steamId, name, profilePictureUrl, matches })
 }
 
 function response(code: number, body: any) {
@@ -69,4 +72,20 @@ async function getSteam64Id(query: string) {
     if (!response.response?.message) return response.response.steamid
   }
   throw Error('did not match regex')
+}
+
+async function getSteamUserInfo(steamId: string) {
+  const url = `http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=${process.env.STEAM_API_KEY}&steamids=${steamId}`
+
+  const response = await axios.get(url)
+  const data = response.data
+
+  if (data.response && data.response.players.length > 0) {
+    const player = data.response.players[0]
+    const name = player.personaname
+    const profilePictureUrl = player.avatarfull
+    return { name, profilePictureUrl }
+  }
+
+  throw new Error('could not fetch user Info')
 }
