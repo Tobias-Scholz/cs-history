@@ -28,12 +28,12 @@ export default async (req: Request, context: Context) => {
   const [matches, { name, profilePictureUrl }] = await Promise.all([
     sql`
     SELECT true as vs, *
-    FROM matches_v2
+    FROM matches
     WHERE ${data.mySteamId} = ANY(players_team1) AND ${steamId} = ANY(players_team2) 
       OR ${data.mySteamId} = ANY(players_team2) AND ${steamId} = ANY(players_team1)
     UNION
     SELECT false as vs, *
-    FROM matches_v2
+    FROM matches
     WHERE ${data.mySteamId} = ANY(players_team1) AND ${steamId} = ANY(players_team1) 
       OR ${data.mySteamId} = ANY(players_team2) AND ${steamId} = ANY(players_team2)
   `,
