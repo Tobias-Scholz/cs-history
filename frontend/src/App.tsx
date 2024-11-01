@@ -1,5 +1,5 @@
 import { Search } from '@mui/icons-material'
-import { Box, CircularProgress, InputAdornment, LinearProgress, TextField } from '@mui/material'
+import { Box, InputAdornment, LinearProgress, TextField } from '@mui/material'
 import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import './App.css'
@@ -30,12 +30,12 @@ function App() {
   const [input, setInput] = useState('')
   const [players, setPlayers] = useState<Player[]>([])
   const [loading, setLoading] = useState(false)
-  const mySteamId = localStorage.getItem('mySteamId')!
+  const mySteamIds = JSON.parse(localStorage.getItem('mySteamIds') || '[]') as string[]
 
   const queryClient = useQueryClient()
 
   const fetchPlayer = async (query: string) => {
-    if (!query || !mySteamId) return
+    if (!query || !mySteamIds) return
     setLoading(true)
     const response = await queryClient.fetchQuery<Response>({
       queryKey: ['history', query],
@@ -43,7 +43,7 @@ function App() {
       queryFn: () =>
         fetch('https://cs-history.netlify.app/.netlify/functions/history', {
           method: 'POST',
-          body: JSON.stringify({ mySteamId, query })
+          body: JSON.stringify({ mySteamId: mySteamIds, query })
         }),
       staleTime: 0
     })
@@ -110,7 +110,7 @@ function App() {
         />
         {players.length > 0 ? (
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <PlayerTable players={players} mySteamId={mySteamId} setPlayers={setPlayers} />
+            <PlayerTable players={players} mySteamIds={mySteamIds} setPlayers={setPlayers} />
             {loading && <LinearProgress color="secondary" style={{ width: '75%' }} />}
           </div>
         ) : (

@@ -19,8 +19,12 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import Leetify from '../media/leetify.svg'
 import { formatDateTime } from '../utils/utils'
 
-function Row(props: { player: Player; mySteamId: string; setPlayers: React.Dispatch<React.SetStateAction<Player[]>> }) {
-  const { player, mySteamId, setPlayers } = props
+function Row(props: {
+  player: Player
+  mySteamIds: string[]
+  setPlayers: React.Dispatch<React.SetStateAction<Player[]>>
+}) {
+  const { player, mySteamIds, setPlayers } = props
   const [open, setOpen] = React.useState(false)
 
   const cellStyle = { paddingTop: '8px', paddingBottom: '8px' }
@@ -36,8 +40,16 @@ function Row(props: { player: Player; mySteamId: string; setPlayers: React.Dispa
     if (matches.length === 0) return 0
     let won = 0
     for (const match of matches) {
-      if (match.players_team1.includes(mySteamId) && match.rounds_team1 > match.rounds_team2) won++
-      if (match.players_team2.includes(mySteamId) && match.rounds_team2 > match.rounds_team1) won++
+      if (
+        mySteamIds.some((steamId) => match.players_team1.includes(steamId)) &&
+        match.rounds_team1 > match.rounds_team2
+      )
+        won++
+      if (
+        mySteamIds.some((steamId) => match.players_team2.includes(steamId)) &&
+        match.rounds_team2 > match.rounds_team1
+      )
+        won++
     }
     return (won / matches.length) * 100
   }
@@ -47,7 +59,7 @@ function Row(props: { player: Player; mySteamId: string; setPlayers: React.Dispa
 
   const HistoryTable = ({ matches }: { matches: Match[] }) => {
     const matchResult = (match: Match) => {
-      if (match.players_team1.includes(mySteamId)) {
+      if (mySteamIds.some((steamId) => match.players_team1.includes(steamId))) {
         return {
           display: `${match.rounds_team1}-${match.rounds_team2}`,
           color:
@@ -205,11 +217,11 @@ function Row(props: { player: Player; mySteamId: string; setPlayers: React.Dispa
 
 export const PlayerTable = ({
   players,
-  mySteamId,
+  mySteamIds,
   setPlayers
 }: {
   players: Player[]
-  mySteamId: string
+  mySteamIds: string[]
   setPlayers: React.Dispatch<React.SetStateAction<Player[]>>
 }) => {
   return (
@@ -238,7 +250,7 @@ export const PlayerTable = ({
         </TableHead>
         <TableBody>
           {players.map((player) => (
-            <Row key={player.name} player={player} mySteamId={mySteamId} setPlayers={setPlayers} />
+            <Row key={player.name} player={player} mySteamIds={mySteamIds} setPlayers={setPlayers} />
           ))}
         </TableBody>
       </Table>

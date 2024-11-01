@@ -7,14 +7,18 @@ export default async (req: Request, context: Context) => {
 
   const sql = neon(process.env.POSTGRES_CONNECTION_STRING)
 
-  let data: { mySteamId: string; query: string }
+  let data: { mySteamIds: string[]; query: string }
   try {
     data = await req.json()
   } catch (error) {
     return response(400, { error: 'Invalid request body' })
   }
 
-  if (typeof data.mySteamId !== 'string' || typeof data.query !== 'string') {
+  if (
+    !Array.isArray(data.mySteamIds) ||
+    !data.mySteamIds.every((s) => typeof s === 'string') ||
+    typeof data.query !== 'string'
+  ) {
     return response(400, { error: 'Invalid request body' })
   }
 
@@ -25,20 +29,23 @@ export default async (req: Request, context: Context) => {
     return response(400, { error: 'Invalid Url' })
   }
 
-  const [matches, { name, profilePictureUrl }] = await Promise.all([
-    sql`
-    SELECT true as vs, *
-    FROM matches
-    WHERE ${data.mySteamId} = ANY(players_team1) AND ${steamId} = ANY(players_team2) 
-      OR ${data.mySteamId} = ANY(players_team2) AND ${steamId} = ANY(players_team1)
-    UNION
-    SELECT false as vs, *
-    FROM matches
-    WHERE ${data.mySteamId} = ANY(players_team1) AND ${steamId} = ANY(players_team1) 
-      OR ${data.mySteamId} = ANY(players_team2) AND ${steamId} = ANY(players_team2)
-  `,
-    getSteamUserInfo(steamId)
-  ])
+  const queries = data.mySteamIds.map(
+    (mySteamId) =>
+      sql`
+        SELECT true as vs, *
+        FROM matches
+        WHERE ${mySteamId} = ANY(players_team1) AND ${steamId} = ANY(players_team2) 
+          OR ${mySteamId} = ANY(players_team2) AND ${steamId} = ANY(players_team1)
+        UNION
+        SELECT false as vs, *
+        FROM matches
+        WHERE ${mySteamId} = ANY(players_team1) AND ${steamId} = ANY(players_team1) 
+          OR ${mySteamId} = ANY(players_team2) AND ${steamId} = ANY(players_team2)
+    `
+  )
+
+  const [{ name, profilePictureUrl }, ...queryResults] = await Promise.all([getSteamUserInfo(steamId), ...queries])
+  const matches = queryResults.flat()
 
   return response(200, { steamId, name, profilePictureUrl, matches })
 }
