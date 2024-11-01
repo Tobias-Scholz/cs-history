@@ -60,16 +60,7 @@ async function getSteam64Id(query: string) {
   const steamVanityRegex = /https:\/\/steamcommunity\.com\/id\/([a-zA-Z0-9_-]+)\/?/
   const leetifyRegex = /https:\/\/leetify\.com\/app\/profile\/(\d{17})/
 
-  let match = query.match(steam64Regex)
-  if (match?.[0]) return match[0]
-
-  match = query.match(steam64UrlRegex)
-  if (match?.[1]) return match[1]
-
-  match = query.match(leetifyRegex)
-  if (match?.[1]) return match[1]
-
-  match = query.match(steamVanityRegex)
+  let match = query.match(steamVanityRegex)
   if (match?.[1]) {
     const response = (
       await axios.get(
@@ -78,6 +69,16 @@ async function getSteam64Id(query: string) {
     ).data
     if (!response.response?.message) return response.response.steamid
   }
+
+  match = query.match(steam64Regex)
+  if (match?.[0]) return match[0]
+
+  match = query.match(steam64UrlRegex)
+  if (match?.[1]) return match[1]
+
+  match = query.match(leetifyRegex)
+  if (match?.[1]) return match[1]
+
   throw Error('did not match regex')
 }
 
