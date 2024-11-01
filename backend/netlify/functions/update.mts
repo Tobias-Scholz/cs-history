@@ -16,14 +16,29 @@ export default async (req: Request) => {
   let lastDate = (lastEntry[0]?.date as Date) || sub(new Date(), { days: 7 })
   lastDate = sub(lastDate, { days: 2 })
 
-  console.log('Fetching History')
-  await processMatches(await fetchHistory(lastDate), sql)
-  console.log('Fetching Profile', '76561198056395137')
-  await processMatches(await fetchProfileHistory(lastDate, '76561198056395137'), sql)
+  console.log('Fetching History: Tobeyyy')
+  await processMatches(await fetchHistory(lastDate), sql, 'Tobeyyy')
+
+  const accounts = [
+    { id: '76561198056395137', name: 'Shaker' },
+    { id: '76561198351596677', name: 'Tako' },
+    { id: '76561198300616918', name: 'Shaker Smurf 1' },
+    { id: '76561198260426246', name: 'Shaker Smurf 2' },
+    { id: '76561198174929263', name: 'Tobeyyy Smurf 1' },
+    { id: '76561198201014401', name: 'Tobeyyy Smurf 2' }
+  ]
+
+  await Promise.all(
+    accounts.map((account) =>
+      fetchProfileHistory(lastDate, account.id, account.name).then((matches) =>
+        processMatches(matches, sql, account.name)
+      )
+    )
+  )
 }
 
-async function fetchProfileHistory(lastDate: Date, steamId: string) {
-  console.log('Fetching history')
+async function fetchProfileHistory(lastDate: Date, steamId: string, name: string) {
+  console.log('Fetching history', name)
 
   let matches = await axios
     .get('https://api.leetify.com/api/profile/' + steamId, {
@@ -37,7 +52,7 @@ async function fetchProfileHistory(lastDate: Date, steamId: string) {
 }
 
 async function fetchHistory(lastDate: Date) {
-  console.log('Fetching from', lastDate)
+  console.log('Fetching history from', lastDate)
 
   return axios
     .get(leetifyHistoryUrl(lastDate), {
@@ -48,17 +63,17 @@ async function fetchHistory(lastDate: Date) {
     .then((result) => result.data.games)
 }
 
-async function processMatches(matches, sql) {
-  console.log('Matches: ' + matches.length)
+async function processMatches(matches, sql, name: string) {
+  console.log(name, 'Matches: ' + matches.length)
 
   for (const matchSummary of matches) {
     const id = matchSummary.id || matchSummary.gameId
-    console.log(id, matchSummary.finishedAt || matchSummary.gameFinishedAt)
+    console.log(name, id, matchSummary.finishedAt || matchSummary.gameFinishedAt)
 
     const entry = await sql`SELECT * FROM matches WHERE id = ${id}`
     if (entry.length > 0) continue
 
-    console.log('Fetching match info')
+    console.log(name, 'Fetching match info')
 
     const match = await axios
       .get(`https://api.leetify.com/api/games/${id}`, {

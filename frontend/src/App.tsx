@@ -43,7 +43,7 @@ function App() {
       queryFn: () =>
         fetch('https://cs-history.netlify.app/.netlify/functions/history', {
           method: 'POST',
-          body: JSON.stringify({ mySteamId: mySteamIds, query })
+          body: JSON.stringify({ mySteamIds, query })
         }),
       staleTime: 0
     })
