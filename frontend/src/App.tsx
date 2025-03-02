@@ -1,10 +1,11 @@
 import { Search } from '@mui/icons-material'
-import { Box, InputAdornment, LinearProgress, TextField } from '@mui/material'
+import { Box, IconButton, InputAdornment, LinearProgress, TextField } from '@mui/material'
 import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import './App.css'
 import { PlayerTable } from './components/PlayerTable'
 import { SteamIdDialog } from './components/SteamIdDialog'
+import EditIcon from '@mui/icons-material/Edit'
 
 export interface Match {
   vs: boolean
@@ -19,11 +20,52 @@ export interface Match {
   date: string
 }
 
+type FaceitPlayerInfo = {
+  player_id: string
+  nickname: string
+  avatar: string
+  country: string
+  cover_image: string
+  platforms: {
+    steam: string
+  }
+  games: {
+    csgo?: GameInfo
+    cs2?: GameInfo
+  }
+  settings: {
+    language: string
+  }
+  friends_ids: string[]
+  new_steam_id: string
+  steam_id_64: string
+  steam_nickname: string
+  memberships: string[]
+  faceit_url: string
+  membership_type: string
+  cover_featured_image: string
+  infractions: Record<string, unknown>
+  verified: boolean
+  activated_at: string
+}
+
+type GameInfo = {
+  region: string
+  game_player_id: string
+  skill_level: number
+  faceit_elo: number
+  game_player_name: string
+  skill_level_label: string
+  regions: Record<string, unknown>
+  game_profile_id: string
+}
+
 export interface Player {
   steamId: string
   name: string
   profilePictureUrl: string
   matches: Match[]
+  faceit: FaceitPlayerInfo
 }
 
 function App() {
@@ -31,6 +73,8 @@ function App() {
   const [players, setPlayers] = useState<Player[]>([])
   const [loading, setLoading] = useState(false)
   const mySteamIds = JSON.parse(localStorage.getItem('mySteamIds') || '[]') as string[]
+
+  const [open, setOpen] = useState(!localStorage.getItem('mySteamIds'))
 
   const queryClient = useQueryClient()
 
@@ -58,16 +102,14 @@ function App() {
   }
 
   return (
-    <>
+    <div style={{ height: '100vh', backgroundColor: '#F7F7F7' }}>
       <Box
         sx={{
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           gap: '100px',
-          paddingTop: '150px',
-          minHeight: '100vh',
-          backgroundColor: '#F7F7F7'
+          paddingTop: '150px'
         }}
       >
         <TextField
@@ -117,8 +159,21 @@ function App() {
           loading && <LinearProgress color="secondary" style={{ width: '75%' }} />
         )}
       </Box>
-      <SteamIdDialog />
-    </>
+      <SteamIdDialog open={open} setOpen={setOpen} />
+      <div style={{ position: 'absolute', bottom: 0, right: 0, textAlign: 'right', fontSize: 12 }}>
+        <IconButton color="primary" onClick={() => setOpen(true)} aria-label="edit">
+          <EditIcon />
+        </IconButton>
+        My SteamIDs
+        <br />
+        {mySteamIds.map((s, index) => (
+          <span key={index}>
+            {s}
+            <br />
+          </span>
+        ))}
+      </div>
+    </div>
   )
 }
 

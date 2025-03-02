@@ -17,7 +17,18 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp'
 import DeleteIcon from '@mui/icons-material/Delete'
 import Leetify from '../media/leetify.svg'
+import Faceit1 from '../media/faceit1.png'
+import Faceit2 from '../media/faceit2.png'
+import Faceit3 from '../media/faceit3.png'
+import Faceit4 from '../media/faceit4.png'
+import Faceit5 from '../media/faceit5.png'
+import Faceit6 from '../media/faceit6.png'
+import Faceit7 from '../media/faceit7.png'
+import Faceit8 from '../media/faceit8.png'
+import Faceit9 from '../media/faceit9.png'
+import Faceit10 from '../media/faceit10.png'
 import { formatDateTime } from '../utils/utils'
+import { EloIcon } from './EloIcon'
 
 function Row(props: {
   player: Player
@@ -35,6 +46,25 @@ function Row(props: {
   const withMatches = player.matches
     .filter((match) => !match.vs)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+  const getFaceitImage = (elo: number) => {
+    if (elo >= 2001) return Faceit10
+    if (elo >= 1751) return Faceit9
+    if (elo >= 1531) return Faceit8
+    if (elo >= 1351) return Faceit7
+    if (elo >= 1201) return Faceit6
+    if (elo >= 1051) return Faceit5
+    if (elo >= 901) return Faceit4
+    if (elo >= 751) return Faceit3
+    if (elo >= 501) return Faceit2
+    return Faceit1
+  }
+
+  let elo = 0
+  if (player.faceit) {
+    if (player.faceit.games.cs2) elo = player.faceit.games.cs2.faceit_elo
+    else if (player.faceit.games.csgo) elo = player.faceit.games.csgo.faceit_elo
+  }
 
   const getWinPerc = (matches: Match[]) => {
     if (matches.length === 0) return 0
@@ -151,6 +181,26 @@ function Row(props: {
               justifyContent: 'flex-end'
             }}
           >
+            {player.faceit && (
+              <a
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 4,
+                  gap: 8,
+                  textDecoration: 'none',
+                  color: 'black'
+                }}
+                href={player.faceit.faceit_url.replace('{lang}', 'en')}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+              >
+                ({elo}
+                <EloIcon />)<img alt="faceit lvl" src={getFaceitImage(elo)} width={23} height={23}></img>
+              </a>
+            )}
             <a
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               href={'https://leetify.com/app/profile/' + player.steamId}
@@ -231,14 +281,14 @@ export const PlayerTable = ({
           <TableRow>
             <TableCell sx={{ width: '5%' }} />
             <TableCell sx={{ width: '10%' }} />
-            <TableCell sx={{ width: '35%' }}>Name</TableCell>
+            <TableCell sx={{ width: '30%' }}>Name</TableCell>
             <TableCell sx={{ width: '10%' }} align="right">
               VS
             </TableCell>
             <TableCell sx={{ width: '10%' }} align="right">
               With
             </TableCell>
-            <TableCell sx={{ width: '20%' }} align="right">
+            <TableCell sx={{ width: '25%' }} align="right">
               Links
             </TableCell>
             <TableCell sx={{ width: '10%' }} align="right">

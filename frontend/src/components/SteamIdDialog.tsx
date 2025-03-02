@@ -11,12 +11,14 @@ import {
 } from '@mui/material'
 import { useState } from 'react'
 
-export const SteamIdDialog = () => {
-  const [open, setOpen] = useState(!localStorage.getItem('mySteamIds'))
-  const [steamIds, setSteamIds] = useState([] as string[])
+export const SteamIdDialog = ({ open, setOpen }: { open: boolean; setOpen: (open: boolean) => void }) => {
+  const [steamIds, setSteamIds] = useState(JSON.parse(localStorage.getItem('mySteamIds') || '[]'))
 
   const handleSave = () => {
-    localStorage.setItem('mySteamIds', JSON.stringify(steamIds))
+    localStorage.setItem(
+      'mySteamIds',
+      JSON.stringify(JSON.parse(localStorage.getItem('mySteamIds') || '[]') as string[])
+    )
     setOpen(false)
   }
 
@@ -35,12 +37,15 @@ export const SteamIdDialog = () => {
               return <Chip variant="outlined" label={option} key={key} {...tagProps} />
             })
           }
+          value={steamIds}
           onChange={(_, newValue) => setSteamIds(newValue)}
-          renderInput={(params) => <TextField {...params} variant="standard" label="steam64ids" placeholder="123" />}
+          renderInput={(params) => (
+            <TextField {...params} variant="standard" label="steam64ids (press enter to add)" placeholder="123" />
+          )}
         />
       </DialogContent>
       <DialogActions>
-        <IconButton onClick={handleSave} aria-label="save" color="primary">
+        <IconButton disabled={steamIds.length === 0} onClick={handleSave} aria-label="save" color="primary">
           <SaveIcon />
         </IconButton>
       </DialogActions>
