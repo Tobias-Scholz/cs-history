@@ -3,7 +3,8 @@ import { neon } from '@neondatabase/serverless'
 import type { Context } from '@netlify/functions'
 
 export default async (req: Request, context: Context) => {
-  if (!process.env.POSTGRES_CONNECTION_STRING || !process.env.STEAM_API_KEY) throw new Error('missing env')
+  if (!process.env.POSTGRES_CONNECTION_STRING || !process.env.STEAM_API_KEY || !process.env.FACEIT_API_KEY)
+    throw new Error('missing env')
 
   const sql = neon(process.env.POSTGRES_CONNECTION_STRING)
 
@@ -44,10 +45,14 @@ export default async (req: Request, context: Context) => {
     `
   )
 
-  const [{ name, profilePictureUrl }, ...queryResults] = await Promise.all([getSteamUserInfo(steamId), ...queries])
+  const [{ name, profilePictureUrl }, faceit, ...queryResults] = await Promise.all([
+    getSteamUserInfo(steamId),
+    getFaceitUserInfo(steamId),
+    ...queries
+  ])
   const matches = queryResults.flat()
 
-  return response(200, { steamId, name, profilePictureUrl, matches })
+  return response(200, { steamId, name, profilePictureUrl, matches, faceit })
 }
 
 function response(code: number, body: any) {
@@ -103,4 +108,63 @@ async function getSteamUserInfo(steamId: string) {
   }
 
   throw new Error('could not fetch user Info')
+}
+
+async function getFaceitUserInfo(steamId: string): Promise<FaceitPlayerInfo | undefined> {
+  const baseUrl = `https://open.faceit.com/data/v4/players?game_player_id=${steamId}&game=`
+  const headers = { Authorization: `Bearer ${process.env.FACEIT_API_KEY}` }
+
+  try {
+    return (await axios.get(`${baseUrl}cs2`, { headers })).data as FaceitPlayerInfo
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      try {
+        return (await axios.get(`${baseUrl}csgo`, { headers })).data as FaceitPlayerInfo
+      } catch (csgoError) {
+        console.error('Faceit request error (CSGO):', csgoError)
+      }
+    } else {
+      console.error('Faceit request error:', error)
+    }
+  }
+}
+
+type FaceitPlayerInfo = {
+  player_id: string
+  nickname: string
+  avatar: string
+  country: string
+  cover_image: string
+  platforms: {
+    steam: string
+  }
+  games: {
+    csgo?: GameInfo
+    cs2?: GameInfo
+  }
+  settings: {
+    language: string
+  }
+  friends_ids: string[]
+  new_steam_id: string
+  steam_id_64: string
+  steam_nickname: string
+  memberships: string[]
+  faceit_url: string
+  membership_type: string
+  cover_featured_image: string
+  infractions: Record<string, unknown>
+  verified: boolean
+  activated_at: string
+}
+
+type GameInfo = {
+  region: string
+  game_player_id: string
+  skill_level: number
+  faceit_elo: number
+  game_player_name: string
+  skill_level_label: string
+  regions: Record<string, unknown>
+  game_profile_id: string
 }
