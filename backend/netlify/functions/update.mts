@@ -25,7 +25,11 @@ export default async (req: Request) => {
     { id: '76561198300616918', name: 'Shaker Smurf 1' },
     { id: '76561198260426246', name: 'Shaker Smurf 2' },
     { id: '76561198174929263', name: 'Tobeyyy Smurf 1' },
-    { id: '76561198201014401', name: 'Tobeyyy Smurf 2' }
+    { id: '76561198201014401', name: 'Tobeyyy Smurf 2' },
+    { id: '76561198089207957', name: 'Snake' },
+    { id: '76561197981567696', name: 'nimm2' }
+    // { id: '76561198306022786', name: 'Vollstrecker' },
+    // { id: '76561198292130745', name: 'Terrine' }
   ]
 
   await Promise.all(
