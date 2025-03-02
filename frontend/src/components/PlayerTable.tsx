@@ -187,7 +187,7 @@ function Row(props: {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  marginRight: 4,
+                  marginRight: 2,
                   gap: 8,
                   textDecoration: 'none',
                   color: 'black'

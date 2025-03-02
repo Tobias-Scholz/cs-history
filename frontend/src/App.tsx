@@ -102,7 +102,7 @@ function App() {
   }
 
   return (
-    <div style={{ height: '100vh', backgroundColor: '#F7F7F7' }}>
+    <div style={{ height: '100%', minHeight: '100vh', backgroundColor: '#F7F7F7' }}>
       <Box
         sx={{
           display: 'flex',
@@ -160,7 +160,7 @@ function App() {
         )}
       </Box>
       <SteamIdDialog open={open} setOpen={setOpen} />
-      <div style={{ position: 'absolute', bottom: 0, right: 0, textAlign: 'right', fontSize: 12 }}>
+      <div style={{ position: 'fixed', bottom: 0, right: 0, textAlign: 'right', fontSize: 12 }}>
         <IconButton color="primary" onClick={() => setOpen(true)} aria-label="edit">
           <EditIcon />
         </IconButton>
