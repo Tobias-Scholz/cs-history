@@ -15,10 +15,7 @@ export const SteamIdDialog = ({ open, setOpen }: { open: boolean; setOpen: (open
   const [steamIds, setSteamIds] = useState(JSON.parse(localStorage.getItem('mySteamIds') || '[]'))
 
   const handleSave = () => {
-    localStorage.setItem(
-      'mySteamIds',
-      JSON.stringify(JSON.parse(localStorage.getItem('mySteamIds') || '[]') as string[])
-    )
+    localStorage.setItem('mySteamIds', JSON.stringify(steamIds))
     setOpen(false)
   }
 
