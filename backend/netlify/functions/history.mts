@@ -124,12 +124,8 @@ async function getFaceitUserInfo(steamId: string): Promise<FaceitPlayerInfo | 't
         if (error.code === 'ECONNABORTED') {
           console.error(`Faceit request timeout (${game.toUpperCase()}):`, error.message)
           return 'timeout'
-        } else if (error.response?.status === 404 && game === 'cs2') {
-          // allow fallback to CSGO
+        } else if (error.response?.status === 404) {
           return undefined
-        } else {
-          console.error(`Faceit request error (${game.toUpperCase()}):`, error.message)
-          return 'timeout'
         }
       } else {
         console.error(`Unexpected error (${game.toUpperCase()}):`, error)

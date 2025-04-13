@@ -211,7 +211,10 @@ function Row(props: {
                 <WarningIcon
                   style={{ cursor: 'pointer' }}
                   color="warning"
-                  onClick={() => props.fetchPlayer(player.steamId)}
+                  onClick={(e) => {
+                    props.fetchPlayer(player.steamId)
+                    e.stopPropagation()
+                  }}
                 />
               </Tooltip>
             )}

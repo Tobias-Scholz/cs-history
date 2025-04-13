@@ -68,6 +68,9 @@ export interface Player {
   faceit?: FaceitPlayerInfo | 'timeout'
 }
 
+const baseUrl = 'https://cs-history.netlify.app'
+// const baseUrl = 'http://localhost:8888'
+
 function App() {
   const [input, setInput] = useState('')
   const [players, setPlayers] = useState<Player[]>([])
@@ -85,7 +88,7 @@ function App() {
       queryKey: ['history', query],
       retry: 0,
       queryFn: () =>
-        fetch('https://cs-history.netlify.app/.netlify/functions/history', {
+        fetch(baseUrl + '/.netlify/functions/history', {
           method: 'POST',
           body: JSON.stringify({ mySteamIds, query })
         }),
