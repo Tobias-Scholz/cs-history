@@ -110,23 +110,39 @@ async function getSteamUserInfo(steamId: string) {
   throw new Error('could not fetch user Info')
 }
 
-async function getFaceitUserInfo(steamId: string): Promise<FaceitPlayerInfo | undefined> {
+async function getFaceitUserInfo(steamId: string): Promise<FaceitPlayerInfo | 'timeout' | undefined> {
   const baseUrl = `https://open.faceit.com/data/v4/players?game_player_id=${steamId}&game=`
   const headers = { Authorization: `Bearer ${process.env.FACEIT_API_KEY}` }
+  const timeout = 4000
 
-  try {
-    return (await axios.get(`${baseUrl}cs2`, { headers })).data as FaceitPlayerInfo
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.status === 404) {
-      try {
-        return (await axios.get(`${baseUrl}csgo`, { headers })).data as FaceitPlayerInfo
-      } catch (csgoError) {
-        console.error('Faceit request error (CSGO):', csgoError)
+  const fetchFaceitData = async (game: 'cs2' | 'csgo') => {
+    try {
+      const response = await axios.get(`${baseUrl}${game}`, { headers, timeout })
+      return response.data as FaceitPlayerInfo
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.code === 'ECONNABORTED') {
+          console.error(`Faceit request timeout (${game.toUpperCase()}):`, error.message)
+          return 'timeout'
+        } else if (error.response?.status === 404 && game === 'cs2') {
+          // allow fallback to CSGO
+          return undefined
+        } else {
+          console.error(`Faceit request error (${game.toUpperCase()}):`, error.message)
+          return 'timeout'
+        }
+      } else {
+        console.error(`Unexpected error (${game.toUpperCase()}):`, error)
+        return 'timeout'
       }
-    } else {
-      console.error('Faceit request error:', error)
     }
   }
+
+  const cs2Result = await fetchFaceitData('cs2')
+  if (cs2Result === 'timeout' || cs2Result) return cs2Result
+
+  const csgoResult = await fetchFaceitData('csgo')
+  return csgoResult
 }
 
 type FaceitPlayerInfo = {

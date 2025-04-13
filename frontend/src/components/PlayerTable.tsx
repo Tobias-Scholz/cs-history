@@ -11,10 +11,12 @@ import {
   Collapse,
   Box,
   IconButton,
-  Typography
+  Typography,
+  Tooltip
 } from '@mui/material'
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp'
+import WarningIcon from '@mui/icons-material/Warning'
 import DeleteIcon from '@mui/icons-material/Delete'
 import Leetify from '../media/leetify.svg'
 import Faceit1 from '../media/faceit1.png'
@@ -34,6 +36,7 @@ function Row(props: {
   player: Player
   mySteamIds: string[]
   setPlayers: React.Dispatch<React.SetStateAction<Player[]>>
+  fetchPlayer: (id: string) => Promise<void>
 }) {
   const { player, mySteamIds, setPlayers } = props
   const [open, setOpen] = React.useState(false)
@@ -61,7 +64,7 @@ function Row(props: {
   }
 
   let elo = 0
-  if (player.faceit) {
+  if (typeof player.faceit === 'object') {
     if (player.faceit.games.cs2) elo = player.faceit.games.cs2.faceit_elo
     else if (player.faceit.games.csgo) elo = player.faceit.games.csgo.faceit_elo
   }
@@ -162,7 +165,9 @@ function Row(props: {
           )}
         </TableCell>
         <TableCell sx={cellStyle} component="th" scope="row">
-          <img height={50} width={50} alt="profilPic" src={player.profilePictureUrl}></img>
+          <a target="_blank" href={`https://steamcommunity.com/profiles/${player.steamId}`} rel="noopener noreferrer">
+            <img height={40} width={40} alt="profilPic" src={player.profilePictureUrl} />
+          </a>
         </TableCell>
         <TableCell sx={cellStyle}>{player.name}</TableCell>
         <TableCell sx={cellStyle} align="right">
@@ -181,7 +186,7 @@ function Row(props: {
               justifyContent: 'flex-end'
             }}
           >
-            {player.faceit && (
+            {typeof player.faceit === 'object' && (
               <a
                 style={{
                   display: 'flex',
@@ -201,6 +206,15 @@ function Row(props: {
                 <EloIcon />)<img alt="faceit lvl" src={getFaceitImage(elo)} width={23} height={23}></img>
               </a>
             )}
+            {player.faceit === 'timeout' && (
+              <Tooltip title="Faceit API Timeout">
+                <WarningIcon
+                  style={{ cursor: 'pointer' }}
+                  color="warning"
+                  onClick={() => props.fetchPlayer(player.steamId)}
+                />
+              </Tooltip>
+            )}
             <a
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               href={'https://leetify.com/app/profile/' + player.steamId}
@@ -215,15 +229,13 @@ function Row(props: {
               target="_blank"
               rel="noopener noreferrer"
               style={{
-                height: 22,
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '3px'
+                justifyContent: 'center'
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              <img src={'https://csstats.gg/favicon.ico'} alt="Leetify" height={22} width={22} />
+              <img src={'https://csstats.gg/favicon.ico'} alt="Leetify" height={28} width={28} />
             </a>
           </div>
         </TableCell>
@@ -268,18 +280,20 @@ function Row(props: {
 export const PlayerTable = ({
   players,
   mySteamIds,
-  setPlayers
+  setPlayers,
+  fetchPlayer
 }: {
   players: Player[]
   mySteamIds: string[]
   setPlayers: React.Dispatch<React.SetStateAction<Player[]>>
+  fetchPlayer: (id: string) => Promise<void>
 }) => {
   return (
     <TableContainer component={Paper} sx={{ maxWidth: '75%' }}>
       <Table aria-label="collapsible table">
         <TableHead>
           <TableRow>
-            <TableCell sx={{ width: '5%' }} />
+            <TableCell sx={{ width: '0%' }} />
             <TableCell sx={{ width: '10%' }} />
             <TableCell sx={{ width: '30%' }}>Name</TableCell>
             <TableCell sx={{ width: '10%' }} align="right">
@@ -300,7 +314,13 @@ export const PlayerTable = ({
         </TableHead>
         <TableBody>
           {players.map((player) => (
-            <Row key={player.name} player={player} mySteamIds={mySteamIds} setPlayers={setPlayers} />
+            <Row
+              key={player.name}
+              player={player}
+              mySteamIds={mySteamIds}
+              setPlayers={setPlayers}
+              fetchPlayer={fetchPlayer}
+            />
           ))}
         </TableBody>
       </Table>

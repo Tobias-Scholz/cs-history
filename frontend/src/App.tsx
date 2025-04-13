@@ -65,7 +65,7 @@ export interface Player {
   name: string
   profilePictureUrl: string
   matches: Match[]
-  faceit: FaceitPlayerInfo
+  faceit?: FaceitPlayerInfo | 'timeout'
 }
 
 function App() {
@@ -96,9 +96,7 @@ function App() {
     if (response.status !== 200) return
 
     const player = (await response.json()) as Player
-    if (!players.find((p) => p.steamId === player.steamId)) {
-      setPlayers((players) => [...players, player])
-    }
+    setPlayers((players) => [...players.filter((p) => p.steamId !== player.steamId), player])
   }
 
   return (
@@ -108,8 +106,8 @@ function App() {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: '100px',
-          paddingTop: '150px'
+          gap: '75px',
+          paddingTop: '75px'
         }}
       >
         <TextField
@@ -152,7 +150,7 @@ function App() {
         />
         {players.length > 0 ? (
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <PlayerTable players={players} mySteamIds={mySteamIds} setPlayers={setPlayers} />
+            <PlayerTable players={players} mySteamIds={mySteamIds} setPlayers={setPlayers} fetchPlayer={fetchPlayer} />
             {loading && <LinearProgress color="secondary" style={{ width: '75%' }} />}
           </div>
         ) : (
