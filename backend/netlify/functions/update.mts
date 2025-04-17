@@ -14,13 +14,13 @@ export default async (req: Request) => {
 
   const lastEntry = await sql`SELECT * FROM matches ORDER BY date DESC LIMIT 1`
   let lastDate = (lastEntry[0]?.date as Date) || sub(new Date(), { days: 7 })
-  lastDate = sub(lastDate, { days: 2 })
+  lastDate = sub(lastDate, { days: 3 })
 
   console.log('Fetching History: Tobeyyy')
   await processMatches(await fetchHistory(lastDate), sql, 'Tobeyyy')
 
   const accounts = [
-    { id: '76561198056395137', name: 'Shaker' },
+    { name: 'Shaker', vanityUrl: 'shaker' },
     { id: '76561198351596677', name: 'Tako' },
     { id: '76561198300616918', name: 'Shaker Smurf 1' },
     { id: '76561198260426246', name: 'Shaker Smurf 2' },
@@ -34,23 +34,29 @@ export default async (req: Request) => {
 
   await Promise.all(
     accounts.map((account) =>
-      fetchProfileHistory(lastDate, account.id, account.name).then((matches) =>
-        processMatches(matches, sql, account.name)
-      )
+      fetchProfileHistory(lastDate, account)
+        .then((matches) => processMatches(matches, sql, account.name))
+        .catch((error) => console.error(error))
     )
   )
 }
 
-async function fetchProfileHistory(lastDate: Date, steamId: string, name: string) {
-  console.log('Fetching history', name)
+async function fetchProfileHistory(lastDate: Date, account: { id?: string; name: string; vanityUrl?: string }) {
+  console.log('Fetching history', account.name)
 
   let matches = await axios
-    .get('https://api.leetify.com/api/profile/' + steamId, {
-      headers: {
-        Authorization: 'Bearer ' + process.env.LEETIFY_TOKEN
+    .get(
+      'in' in account
+        ? 'https://api.leetify.com/api/profile/' + account.id
+        : 'https://api.cs-prod.leetify.com/api/profile/vanity-url/' + account.vanityUrl,
+      {
+        headers: {
+          Authorization: 'Bearer ' + process.env.LEETIFY_TOKEN
+        }
       }
-    })
+    )
     .then((result) => result.data.games)
+    .catch((error) => console.error('error fetching history', account, error))
 
   return matches.filter((m) => new Date(m.gameFinishedAt).getTime() > lastDate.getTime())
 }
