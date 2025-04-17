@@ -86,7 +86,7 @@ function App() {
     setLoading(true)
     const response = await queryClient.fetchQuery<Response>({
       queryKey: ['history', query],
-      retry: 0,
+      retry: 2,
       queryFn: () =>
         fetch(baseUrl + '/.netlify/functions/history', {
           method: 'POST',
