@@ -23,12 +23,14 @@ export default async (req: Request, context: Context) => {
     return response(400, { error: 'Invalid request body' })
   }
 
-  let steamId
+  let steamId: string
   try {
     steamId = await getSteam64Id(data.query)
   } catch (error) {
     return response(400, { error: 'Invalid Url' })
   }
+
+  await incrementCounters(sql, data.mySteamIds)
 
   const queries = data.mySteamIds.map(
     (mySteamId) =>
@@ -53,6 +55,20 @@ export default async (req: Request, context: Context) => {
   const matches = queryResults.flat()
 
   return response(200, { steamId, name, profilePictureUrl, matches, faceit })
+}
+
+async function incrementCounters(sql, steamIds: string[]) {
+  await Promise.all(
+    steamIds.map(
+      (steamId) =>
+        sql`
+        INSERT INTO metrics (id, counter)
+        VALUES (${steamId}, 1)
+        ON CONFLICT (id) DO UPDATE
+        SET counter = metrics.counter + 1
+      `
+    )
+  )
 }
 
 function response(code: number, body: any) {
