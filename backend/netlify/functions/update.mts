@@ -96,7 +96,7 @@ async function processMatches(matches, sql, name: string) {
     let players = match.playerStats
 
     if (match.playerStats[0]?.initialTeamNumber === undefined) {
-      await processSkeletonMatch(match, players, sql)
+      await processSkeletonMatch(match, sql)
       continue
     }
 
@@ -104,8 +104,26 @@ async function processMatches(matches, sql, name: string) {
   }
 }
 
-async function processSkeletonMatch(match, players, sql) {
-  players = match.gamePlayerRoundSkeletonStats
+async function processSkeletonMatch(match, sql) {
+  let stats = match.gamePlayerRoundSkeletonStats as {
+    gameId: string
+    gameFinishedAt: string
+    steam64Id: string
+    roundNumber: number
+    isWon: boolean
+    roundWon: number
+    kills: number
+    assists: number
+    deaths: number
+    leaver: boolean
+    game: null
+  }[]
+
+  const players = [] as string[]
+
+  for (const stat of stats) {
+    if (!players.includes(stat.steam64Id)) players.push(stat.steam64Id)
+  }
 
   const half = Math.ceil(players.length / 2)
 
@@ -116,10 +134,10 @@ async function processSkeletonMatch(match, players, sql) {
     INSERT INTO matches (id, players_team1, players_team2, rounds_team1, rounds_team2, type, date, map)
     VALUES (
         ${match.id},
-        ${team1Players.map((player) => player.steam64Id)},
-        ${team2Players.map((player) => player.steam64Id)},
-        ${isNaN(team1Players[0]?.roundWon) ? null : team1Players[0]?.roundWon},
-        ${isNaN(team2Players[0]?.roundWon) ? null : team2Players[0]?.roundWon},
+        ${team1Players.map((player) => player)},
+        ${team2Players.map((player) => player)},
+        ${isNaN(match.teamScores[0]) ? null : match.teamScores[0]},
+        ${isNaN(match.teamScores[1]) ? null : match.teamScores[1]},
         'Leetify',
         ${match.finishedAt},
         ${match.mapName}
