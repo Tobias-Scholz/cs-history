@@ -4,7 +4,7 @@ import axios from 'axios'
 import { format, sub } from 'date-fns'
 
 export const config: Config = {
-  schedule: '0 0 * * *'
+  schedule: '0 */3 * * *'
 }
 
 export default async (req: Request) => {
