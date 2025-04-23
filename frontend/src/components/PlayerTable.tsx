@@ -12,7 +12,8 @@ import {
   Box,
   IconButton,
   Typography,
-  Tooltip
+  Tooltip,
+  useTheme
 } from '@mui/material'
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp'
@@ -42,6 +43,8 @@ function Row(props: {
   const [open, setOpen] = React.useState(false)
 
   const cellStyle = { paddingTop: '8px', paddingBottom: '8px' }
+  const theme = useTheme()
+  const isDark = theme.palette.mode === 'dark'
 
   const vsMatches = player.matches
     .filter((match) => match.vs)
@@ -90,23 +93,31 @@ function Row(props: {
   const vs_perc = getWinPerc(vsMatches)
   const with_perc = getWinPerc(withMatches)
 
+  const getMatchColor = (isWin: boolean, isLoss: boolean, isDark: boolean): string => {
+    if (isDark) {
+      if (isWin) return '#6eed6e'
+      if (isLoss) return '#f08080'
+      return 'white'
+    } else {
+      if (isWin) return 'green'
+      if (isLoss) return 'red'
+      return 'black'
+    }
+  }
+
   const HistoryTable = ({ matches }: { matches: Match[] }) => {
     const matchResult = (match: Match) => {
-      if (mySteamIds.some((steamId) => match.players_team1.includes(steamId))) {
-        return {
-          display: `${match.rounds_team1}-${match.rounds_team2}`,
-          color:
-            match.rounds_team1 > match.rounds_team2
-              ? 'green'
-              : match.rounds_team1 < match.rounds_team2
-              ? 'red'
-              : 'black'
-        }
-      }
+      const isTeam1 = mySteamIds.some((steamId) => match.players_team1.includes(steamId))
+
+      const roundsFor = isTeam1 ? match.rounds_team1 : match.rounds_team2
+      const roundsAgainst = isTeam1 ? match.rounds_team2 : match.rounds_team1
+
+      const isWin = roundsFor > roundsAgainst
+      const isLoss = roundsFor < roundsAgainst
+
       return {
-        display: `${match.rounds_team2}-${match.rounds_team1}`,
-        color:
-          match.rounds_team2 > match.rounds_team1 ? 'green' : match.rounds_team2 < match.rounds_team1 ? 'red' : 'black'
+        display: `${roundsFor}-${roundsAgainst}`,
+        color: getMatchColor(isWin, isLoss, isDark)
       }
     }
 
@@ -195,7 +206,7 @@ function Row(props: {
                   marginRight: 2,
                   gap: 8,
                   textDecoration: 'none',
-                  color: 'black'
+                  color: isDark ? 'white' : 'black'
                 }}
                 href={player.faceit.faceit_url.replace('{lang}', 'en')}
                 target="_blank"
@@ -292,7 +303,10 @@ export const PlayerTable = ({
   fetchPlayer: (id: string) => Promise<void>
 }) => {
   return (
-    <TableContainer component={Paper} sx={{ maxWidth: '75%' }}>
+    <TableContainer
+      component={Paper}
+      sx={{ maxWidth: '75%', backgroundColor: (theme) => (theme.palette.mode === 'dark' ? '#1e1e1e' : 'white') }}
+    >
       <Table aria-label="collapsible table">
         <TableHead>
           <TableRow>

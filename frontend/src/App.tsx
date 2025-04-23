@@ -1,5 +1,15 @@
-import { Search } from '@mui/icons-material'
-import { Box, IconButton, InputAdornment, LinearProgress, TextField } from '@mui/material'
+import { Brightness4, Brightness7, Search } from '@mui/icons-material'
+import {
+  Box,
+  createTheme,
+  CssBaseline,
+  IconButton,
+  InputAdornment,
+  LinearProgress,
+  TextField,
+  ThemeProvider,
+  useMediaQuery
+} from '@mui/material'
 import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import './App.css'
@@ -72,6 +82,15 @@ const baseUrl = 'https://cs-history.netlify.app'
 // const baseUrl = 'http://localhost:8888'
 
 function App() {
+  const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)')
+  const [darkMode, setDarkMode] = useState(prefersDarkMode)
+
+  const theme = createTheme({
+    palette: {
+      mode: darkMode ? 'dark' : 'light'
+    }
+  })
+
   const [input, setInput] = useState('')
   const [players, setPlayers] = useState<Player[]>([])
   const [loading, setLoading] = useState(false)
@@ -103,78 +122,99 @@ function App() {
   }
 
   return (
-    <div style={{ height: '100%', minHeight: '100vh', backgroundColor: '#F7F7F7' }}>
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '75px',
-          paddingTop: '75px'
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <div
+        style={{
+          height: '100%',
+          minHeight: '100vh',
+          ...(theme.palette.mode === 'light' && { backgroundColor: '#F7F7F7' })
         }}
       >
-        <TextField
-          fullWidth
-          placeholder="Search..."
-          variant="outlined"
-          value={input}
-          onChange={(event) => setInput(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              fetchPlayer(input)
-              event.stopPropagation()
-            }
-          }}
-          onPaste={(event) => {
-            const pastedText = event.clipboardData.getData('text')
-            fetchPlayer(pastedText)
-            event.stopPropagation()
-          }}
+        <Box
           sx={{
-            width: { xs: '90%', sm: '70%', md: '50%' },
-            maxWidth: 800,
-            backgroundColor: 'white',
-            borderRadius: '50px',
-            '& .MuiOutlinedInput-root': {
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '75px',
+            paddingTop: '75px'
+          }}
+        >
+          <TextField
+            fullWidth
+            placeholder="Search..."
+            variant="outlined"
+            value={input}
+            onChange={(event) => setInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                fetchPlayer(input)
+                event.stopPropagation()
+              }
+            }}
+            onPaste={(event) => {
+              const pastedText = event.clipboardData.getData('text')
+              fetchPlayer(pastedText)
+              event.stopPropagation()
+            }}
+            sx={{
+              width: { xs: '90%', sm: '70%', md: '50%' },
+              maxWidth: 800,
               borderRadius: '50px',
-              paddingLeft: '10px',
-              paddingRight: '20px'
-            }
-          }}
-          slotProps={{
-            input: {
-              endAdornment: (
-                <InputAdornment position="end">
-                  <Search />
-                </InputAdornment>
-              )
-            }
-          }}
-        />
-        {players.length > 0 ? (
-          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <PlayerTable players={players} mySteamIds={mySteamIds} setPlayers={setPlayers} fetchPlayer={fetchPlayer} />
-            {loading && <LinearProgress color="secondary" style={{ width: '75%' }} />}
-          </div>
-        ) : (
-          loading && <LinearProgress color="secondary" style={{ width: '75%' }} />
-        )}
-      </Box>
-      <SteamIdDialog open={open} setOpen={setOpen} />
-      <div style={{ position: 'fixed', bottom: 0, right: 0, textAlign: 'right', fontSize: 12 }}>
-        <IconButton color="primary" onClick={() => setOpen(true)} aria-label="edit">
-          <EditIcon />
-        </IconButton>
-        My SteamIDs
-        <br />
-        {mySteamIds.map((s, index) => (
-          <span key={index}>
-            {s}
-            <br />
-          </span>
-        ))}
+              '& .MuiOutlinedInput-root': {
+                borderRadius: '50px',
+                paddingLeft: '10px',
+                paddingRight: '20px'
+              }
+            }}
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <Search />
+                  </InputAdornment>
+                )
+              }
+            }}
+          />
+          {players.length > 0 ? (
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <PlayerTable
+                players={players}
+                mySteamIds={mySteamIds}
+                setPlayers={setPlayers}
+                fetchPlayer={fetchPlayer}
+              />
+              {loading && <LinearProgress color="secondary" style={{ width: '75%' }} />}
+            </div>
+          ) : (
+            loading && <LinearProgress color="secondary" style={{ width: '75%' }} />
+          )}
+        </Box>
+        <SteamIdDialog open={open} setOpen={setOpen} />
+        <div style={{ position: 'fixed', bottom: 0, right: 0, textAlign: 'right', fontSize: 12 }}>
+          <IconButton color="primary" onClick={() => setOpen(true)} aria-label="edit">
+            <EditIcon />
+          </IconButton>
+          My SteamIDs
+          <br />
+          {mySteamIds.map((s, index) => (
+            <span key={index}>
+              {s}
+              <br />
+            </span>
+          ))}
+          <IconButton
+            onClick={() => setDarkMode(!darkMode)}
+            sx={{ ml: 1 }}
+            color="inherit"
+            aria-label="toggle dark mode"
+          >
+            {darkMode ? <Brightness7 /> : <Brightness4 />}
+          </IconButton>
+        </div>
       </div>
-    </div>
+    </ThemeProvider>
   )
 }
 
