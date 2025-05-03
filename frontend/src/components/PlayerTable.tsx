@@ -320,7 +320,19 @@ export const PlayerTable = ({
               With
             </TableCell>
             <TableCell sx={{ width: '25%' }} align="right">
-              Links
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
+                <img
+                  src={Leetify}
+                  alt="Leetify"
+                  style={{ width: '30px', height: '30px', cursor: 'pointer' }}
+                  onClick={() => {
+                    for (const player of players) {
+                      window.open('https://leetify.com/app/profile/' + player.steamId, '_blank')
+                    }
+                  }}
+                />
+                Links
+              </div>
             </TableCell>
             <TableCell sx={{ width: '10%' }} align="right">
               <IconButton onClick={() => setPlayers([])} aria-label="delete" color="primary">
