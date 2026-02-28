@@ -20,6 +20,7 @@ import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp'
 import WarningIcon from '@mui/icons-material/Warning'
 import DeleteIcon from '@mui/icons-material/Delete'
 import Leetify from '../media/leetify.svg'
+import Csrep from '../media/csrep.png'
 import Faceit1 from '../media/faceit1.png'
 import Faceit2 from '../media/faceit2.png'
 import Faceit3 from '../media/faceit3.png'
@@ -231,6 +232,15 @@ function Row(props: {
             )}
             <a
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              href={'https://csrep.gg/player/' + player.steamId}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img src={Csrep} alt="CSrep" style={{ width: '25px', height: '25px' }} />
+            </a>
+            <a
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               href={'https://leetify.com/app/profile/' + player.steamId}
               target="_blank"
               rel="noopener noreferrer"
@@ -321,6 +331,16 @@ export const PlayerTable = ({
             </TableCell>
             <TableCell sx={{ width: '25%' }} align="right">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
+                <img
+                  src={Csrep}
+                  alt="CSRep"
+                  style={{ width: '25px', height: '25px', cursor: 'pointer' }}
+                  onClick={() => {
+                    for (const player of players) {
+                      window.open('https://csrep.gg/player/' + player.steamId, '_blank')
+                    }
+                  }}
+                />
                 <img
                   src={Leetify}
                   alt="Leetify"
