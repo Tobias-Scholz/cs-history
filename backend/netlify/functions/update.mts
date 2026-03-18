@@ -40,7 +40,7 @@ export default async (req: Request) => {
 
   const accounts = [
     { id: '76561198092541763', name: 'Tobeyyy' },
-    { id: '76561198119268786', name: 'Shaker' },
+    { id: '76561198056395137', name: 'Shaker' },
     { id: '76561198351596677', name: 'Tako' },
     { id: '76561198300616918', name: 'Shaker Smurf 1' },
     { id: '76561198260426246', name: 'Shaker Smurf 2' },
