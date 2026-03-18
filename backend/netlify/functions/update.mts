@@ -1,11 +1,13 @@
 import { neon } from '@neondatabase/serverless'
 import type { Config } from '@netlify/functions'
 import axios from 'axios'
-import { format, sub } from 'date-fns'
+import { sub } from 'date-fns'
 
 export const config: Config = {
   schedule: '0 */3 * * *'
 }
+
+const LEETIFY_BASE_URL = 'https://api-public.cs-prod.leetify.com'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function logError(sql: any, source: string, message: string, details?: string) {
@@ -17,7 +19,7 @@ async function logError(sql: any, source: string, message: string, details?: str
 }
 
 export default async (req: Request) => {
-  if (!process.env.POSTGRES_CONNECTION_STRING || !process.env.LEETIFY_TOKEN) throw new Error('missing env')
+  if (!process.env.POSTGRES_CONNECTION_STRING || !process.env.LEETIFY_API_KEY) throw new Error('missing env')
 
   const sql = neon(process.env.POSTGRES_CONNECTION_STRING)
 
@@ -35,11 +37,9 @@ export default async (req: Request) => {
   let lastDate = (lastEntry[0]?.date as Date) || sub(new Date(), { days: 7 })
   lastDate = sub(lastDate, { days: 3 })
 
-  console.log('Fetching History: Tobeyyy')
-  await processMatches(await fetchHistory(lastDate), sql, 'Tobeyyy')
-
   const accounts = [
-    { name: 'Shaker', vanityUrl: 'shaker' },
+    { id: '76561198092541763', name: 'Tobeyyy' },
+    { id: '76561198119268786', name: 'Shaker' },
     { id: '76561198351596677', name: 'Tako' },
     { id: '76561198300616918', name: 'Shaker Smurf 1' },
     { id: '76561198260426246', name: 'Shaker Smurf 2' },
@@ -63,44 +63,32 @@ export default async (req: Request) => {
   )
 }
 
-async function fetchProfileHistory(lastDate: Date, account: { id?: string; name: string; vanityUrl?: string }) {
+async function fetchProfileHistory(lastDate: Date, account: { id: string; name: string }) {
   console.log('Fetching history', account.name)
 
-  let matches = await axios
-    .get(
-      'in' in account
-        ? 'https://api.leetify.com/api/profile/' + account.id
-        : 'https://api.cs-prod.leetify.com/api/profile/vanity-url/' + account.vanityUrl,
-      {
-        headers: {
-          Authorization: 'Bearer ' + process.env.LEETIFY_TOKEN
-        }
-      }
-    )
-    .then((result) => result.data.games)
-    .catch((error) => console.error('error fetching history', account, error))
-
-  return matches.filter((m) => new Date(m.gameFinishedAt).getTime() > lastDate.getTime())
-}
-
-async function fetchHistory(lastDate: Date) {
-  console.log('Fetching history from', lastDate)
-
-  return axios
-    .get(leetifyHistoryUrl(lastDate), {
+  const matches = await axios
+    .get(`${LEETIFY_BASE_URL}/v3/profile/matches`, {
+      params: { steam64_id: account.id },
       headers: {
-        Authorization: 'Bearer ' + process.env.LEETIFY_TOKEN
+        Authorization: 'Bearer ' + process.env.LEETIFY_API_KEY
       }
     })
-    .then((result) => result.data.games)
+    .then((result) => result.data as LeetifyMatch[])
+    .catch((error) => {
+      console.error('error fetching history', account, error)
+      return [] as LeetifyMatch[]
+    })
+
+  return matches.filter((m) => new Date(m.finished_at).getTime() > lastDate.getTime())
 }
 
-async function processMatches(matches, sql, name: string) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function processMatches(matches: LeetifyMatch[], sql: any, name: string) {
   console.log(name, 'Matches: ' + matches.length)
 
   for (const matchSummary of matches) {
-    const id = matchSummary.id || matchSummary.gameId
-    console.log(name, id, matchSummary.finishedAt || matchSummary.gameFinishedAt)
+    const id = matchSummary.id
+    console.log(name, id, matchSummary.finished_at)
 
     const entry = await sql`SELECT * FROM matches WHERE id = ${id}`
     if (entry.length > 0) continue
@@ -109,21 +97,14 @@ async function processMatches(matches, sql, name: string) {
 
     try {
       const match = await axios
-        .get(`https://api.leetify.com/api/games/${id}`, {
+        .get(`${LEETIFY_BASE_URL}/v2/matches/${id}`, {
           headers: {
-            Authorization: 'Bearer ' + process.env.LEETIFY_TOKEN
+            Authorization: 'Bearer ' + process.env.LEETIFY_API_KEY
           }
         })
-        .then((result) => result.data)
+        .then((result) => result.data as LeetifyMatchDetails)
 
-      let players = match.playerStats
-
-      if (match.playerStats[0]?.initialTeamNumber === undefined) {
-        await processSkeletonMatch(match, sql)
-        continue
-      }
-
-      await processMatch(match, players, sql)
+      await processMatch(match, sql)
     } catch (error) {
       console.error(name, 'Failed to process match', id, error)
       await logError(sql, `processMatches:${name}`, `Failed to process match ${id}: ${String(error)}`)
@@ -131,102 +112,86 @@ async function processMatches(matches, sql, name: string) {
   }
 }
 
-async function processSkeletonMatch(match, sql) {
-  let stats = match.gamePlayerRoundSkeletonStats as {
-    gameId: string
-    gameFinishedAt: string
-    steam64Id: string
-    roundNumber: number
-    isWon: boolean
-    roundWon: number
-    kills: number
-    assists: number
-    deaths: number
-    leaver: boolean
-    game: null
-  }[]
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function processMatch(match: LeetifyMatchDetails, sql: any) {
+  const players = match.stats
 
-  const players = [] as string[]
-
-  for (const stat of stats) {
-    if (!players.includes(stat.steam64Id)) players.push(stat.steam64Id)
+  if (!players || players.length === 0) {
+    console.warn('No player stats for match', match.id)
+    return
   }
 
-  const half = Math.ceil(players.length / 2)
-
-  const team1Players = players.slice(0, half)
-  const team2Players = players.slice(half)
-
-  await sql`
-    INSERT INTO matches (id, players_team1, players_team2, rounds_team1, rounds_team2, type, date, map)
-    VALUES (
-        ${match.id},
-        ${team1Players.map((player) => player)},
-        ${team2Players.map((player) => player)},
-        ${isNaN(match.teamScores[0]) ? null : match.teamScores[0]},
-        ${isNaN(match.teamScores[1]) ? null : match.teamScores[1]},
-        'Leetify',
-        ${match.finishedAt},
-        ${match.mapName}
-    )
-    ON CONFLICT (id) DO NOTHING;
-  `
-}
-
-async function processMatch(match, players, sql) {
-  const teamIds = new Set()
-  for (const player of players) teamIds.add(player.initialTeamNumber)
+  const teamIds = new Set<number>()
+  for (const player of players) teamIds.add(player.initial_team_number)
 
   const [team1Id, team2Id] = [...teamIds]
 
-  const team1Players = players.filter((player) => player.initialTeamNumber === team1Id)
-  const team2Players = players.filter((player) => player.initialTeamNumber === team2Id)
+  const team1Players = players.filter((player) => player.initial_team_number === team1Id)
+  const team2Players = players.filter((player) => player.initial_team_number === team2Id)
+
+  const team1Score = match.team_scores.find((t) => t.team_number === team1Id)?.score ?? null
+  const team2Score = match.team_scores.find((t) => t.team_number === team2Id)?.score ?? null
 
   await sql`
     INSERT INTO matches (id, players_team1, players_team2, rounds_team1, rounds_team2, type, date, map)
     VALUES (
         ${match.id},
-        ${team1Players.map((player) => player.steam64Id)},
-        ${team2Players.map((player) => player.steam64Id)},
-        ${
-          isNaN(team1Players[0]?.tRoundsWon + team1Players[0]?.ctRoundsWon)
-            ? null
-            : team1Players[0]?.tRoundsWon + team1Players[0]?.ctRoundsWon
-        },
-        ${
-          isNaN(team2Players[0]?.tRoundsWon + team2Players[0]?.ctRoundsWon)
-            ? null
-            : team2Players[0]?.tRoundsWon + team2Players[0]?.ctRoundsWon
-        },
+        ${team1Players.map((player) => player.steam64_id)},
+        ${team2Players.map((player) => player.steam64_id)},
+        ${isNaN(team1Score as number) || team1Score === null ? null : team1Score},
+        ${isNaN(team2Score as number) || team2Score === null ? null : team2Score},
         'Leetify',
-        ${match.finishedAt},
-        ${match.mapName}
+        ${match.finished_at},
+        ${match.map_name}
     )
     ON CONFLICT (id) DO NOTHING;
   `
 }
 
-function leetifyHistoryUrl(
-  currentStartDate: Date,
-  currentEndDate = new Date(),
-  previousStartDate = currentStartDate,
-  previousEndDate = new Date()
-) {
-  const formattedCurrentStartDate = format(currentStartDate, 'yyyy-MM-dd')
-  const formattedCurrentEndDate = format(currentEndDate, 'yyyy-MM-dd')
-  const formattedPreviousStartDate = format(previousStartDate, 'yyyy-MM-dd')
-  const formattedPreviousEndDate = format(previousEndDate, 'yyyy-MM-dd')
+type LeetifyMatch = {
+  id: string
+  finished_at: string
+  data_source: string
+  outcome: string
+  rank: number
+  rank_type: string | null
+  map_name: string
+  leetify_rating: number
+  score: [number, number]
+  preaim: number
+  reaction_time_ms: number
+  accuracy_enemy_spotted: number
+  accuracy_head: number
+  spray_accuracy: number
+}
 
-  const periods = {
-    currentPeriod: {
-      startDate: formattedCurrentStartDate,
-      endDate: formattedCurrentEndDate
-    },
-    previousPeriod: {
-      startDate: formattedPreviousStartDate,
-      endDate: formattedPreviousEndDate
-    }
-  }
+type LeetifyMatchDetails = {
+  id: string
+  finished_at: string
+  data_source: string
+  data_source_match_id: string
+  map_name: string
+  has_banned_player: boolean
+  team_scores: TeamScore[]
+  stats: PlayerStats[]
+}
 
-  return `https://api.leetify.com/api/games/history?periods=${encodeURIComponent(JSON.stringify(periods))}`
+type TeamScore = {
+  team_number: number
+  score: number
+}
+
+type PlayerStats = {
+  steam64_id: string
+  name: string
+  initial_team_number: number
+  total_kills: number
+  total_deaths: number
+  total_assists: number
+  rounds_won: number
+  rounds_lost: number
+  rounds_count: number
+  leetify_rating: number | null
+  ct_leetify_rating: number | null
+  t_leetify_rating: number | null
 }
