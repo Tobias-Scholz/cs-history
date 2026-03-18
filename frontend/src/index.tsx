@@ -1,4 +1,3 @@
-import React from 'react'
 import ReactDOM from 'react-dom/client'
 import './index.css'
 import App from './App'
@@ -10,15 +9,19 @@ import '@fontsource/roboto/400.css'
 import '@fontsource/roboto/500.css'
 import '@fontsource/roboto/700.css'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { HashRouter, Route, Routes } from 'react-router-dom'
 
 const queryClient = new QueryClient()
-
-const isDebug = window.location.pathname === '/cs-history/debug'
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement)
 root.render(
   <QueryClientProvider client={queryClient}>
-    {isDebug ? <DebugPage /> : <App />}
+    <HashRouter>
+      <Routes>
+        <Route path="/debug" element={<DebugPage />} />
+        <Route path="*" element={<App />} />
+      </Routes>
+    </HashRouter>
   </QueryClientProvider>
 )
 

@@ -23,22 +23,6 @@
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
   <title>CS History</title>
-  <script>
-    // GitHub Pages SPA redirect: restore path from query string set by 404.html
-    (function() {
-      var redirect = window.location.search.slice(1);
-      if (redirect.startsWith('p=/')) {
-        var params = redirect.split('&');
-        var path = params[0].slice(2).replace(/~and~/g, '&');
-        var query = params.slice(1).join('&').replace(/^q=/, '').replace(/~and~/g, '&');
-        window.history.replaceState(
-          null, null,
-          window.location.pathname.slice(0, window.location.pathname.indexOf('/', 1) + 1) +
-          path + (query ? '?' + query : '') + window.location.hash
-        );
-      }
-    })();
-  </script>
 </head>
 
 <body>
