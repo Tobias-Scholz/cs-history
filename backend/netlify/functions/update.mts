@@ -19,7 +19,8 @@ async function logError(sql: any, source: string, message: string, details?: str
 }
 
 export default async (req: Request) => {
-  if (!process.env.POSTGRES_CONNECTION_STRING || !process.env.LEETIFY_API_KEY) throw new Error('missing env')
+  if (!process.env.POSTGRES_CONNECTION_STRING) throw new Error('missing env POSTGRES_CONNECTION_STRING')
+  if (!process.env.LEETIFY_API_KEY) throw new Error('missing env LEETIFY_API_KEY')
 
   const sql = neon(process.env.POSTGRES_CONNECTION_STRING)
 
