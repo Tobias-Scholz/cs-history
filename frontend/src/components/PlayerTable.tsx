@@ -1,370 +1,108 @@
 import React from 'react'
-import { Match, Player } from '../App'
 import {
-  TableContainer,
-  Paper,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  Collapse,
   Box,
   IconButton,
-  Typography,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   Tooltip,
-  useTheme
+  useTheme,
 } from '@mui/material'
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp'
-import WarningIcon from '@mui/icons-material/Warning'
-import DeleteIcon from '@mui/icons-material/Delete'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import Leetify from '../media/leetify.svg'
 import Csrep from '../media/csrep.png'
-import Faceit1 from '../media/faceit1.png'
-import Faceit2 from '../media/faceit2.png'
-import Faceit3 from '../media/faceit3.png'
-import Faceit4 from '../media/faceit4.png'
-import Faceit5 from '../media/faceit5.png'
-import Faceit6 from '../media/faceit6.png'
-import Faceit7 from '../media/faceit7.png'
-import Faceit8 from '../media/faceit8.png'
-import Faceit9 from '../media/faceit9.png'
-import Faceit10 from '../media/faceit10.png'
-import { formatDateTime } from '../utils/utils'
-import { EloIcon } from './EloIcon'
-
-function Row(props: {
-  player: Player
-  mySteamIds: string[]
-  setPlayers: React.Dispatch<React.SetStateAction<Player[]>>
-  fetchPlayer: (id: string) => Promise<void>
-}) {
-  const { player, mySteamIds, setPlayers } = props
-  const [open, setOpen] = React.useState(false)
-
-  const cellStyle = { paddingTop: '8px', paddingBottom: '8px' }
-  const theme = useTheme()
-  const isDark = theme.palette.mode === 'dark'
-
-  const vsMatches = player.matches
-    .filter((match) => match.vs)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-  const withMatches = player.matches
-    .filter((match) => !match.vs)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-
-  const getFaceitImage = (elo: number) => {
-    if (elo >= 2001) return Faceit10
-    if (elo >= 1751) return Faceit9
-    if (elo >= 1531) return Faceit8
-    if (elo >= 1351) return Faceit7
-    if (elo >= 1201) return Faceit6
-    if (elo >= 1051) return Faceit5
-    if (elo >= 901) return Faceit4
-    if (elo >= 751) return Faceit3
-    if (elo >= 501) return Faceit2
-    return Faceit1
-  }
-
-  let elo = 0
-  if (typeof player.faceit === 'object') {
-    if (player.faceit.games.cs2) elo = player.faceit.games.cs2.faceit_elo
-    else if (player.faceit.games.csgo) elo = player.faceit.games.csgo.faceit_elo
-  }
-
-  const getWinPerc = (matches: Match[]) => {
-    if (matches.length === 0) return 0
-    let won = 0
-    for (const match of matches) {
-      if (
-        mySteamIds.some((steamId) => match.players_team1.includes(steamId)) &&
-        match.rounds_team1 > match.rounds_team2
-      )
-        won++
-      if (
-        mySteamIds.some((steamId) => match.players_team2.includes(steamId)) &&
-        match.rounds_team2 > match.rounds_team1
-      )
-        won++
-    }
-    return (won / matches.length) * 100
-  }
-
-  const vs_perc = getWinPerc(vsMatches)
-  const with_perc = getWinPerc(withMatches)
-
-  const getMatchColor = (isWin: boolean, isLoss: boolean, isDark: boolean): string => {
-    if (isDark) {
-      if (isWin) return '#6eed6e'
-      if (isLoss) return '#f08080'
-      return 'white'
-    } else {
-      if (isWin) return 'green'
-      if (isLoss) return 'red'
-      return 'black'
-    }
-  }
-
-  const HistoryTable = ({ matches }: { matches: Match[] }) => {
-    const matchResult = (match: Match) => {
-      const isTeam1 = mySteamIds.some((steamId) => match.players_team1.includes(steamId))
-
-      const roundsFor = isTeam1 ? match.rounds_team1 : match.rounds_team2
-      const roundsAgainst = isTeam1 ? match.rounds_team2 : match.rounds_team1
-
-      const isWin = roundsFor > roundsAgainst
-      const isLoss = roundsFor < roundsAgainst
-
-      return {
-        display: `${roundsFor}-${roundsAgainst}`,
-        color: getMatchColor(isWin, isLoss, isDark)
-      }
-    }
-
-    return (
-      <Table size="small" aria-label="matches">
-        <TableHead>
-          <TableRow>
-            <TableCell sx={{ width: '25%' }}>Date</TableCell>
-            <TableCell sx={{ width: '25%' }}>Map</TableCell>
-            <TableCell sx={{ width: '25%' }} align="center">
-              Result
-            </TableCell>
-            <TableCell sx={{ width: '25%' }} align="right">
-              Link
-            </TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {matches.map((match) => (
-            <TableRow key={match.id}>
-              <TableCell component="th" scope="row">
-                {formatDateTime(match.date)}
-              </TableCell>
-              <TableCell>{match.map}</TableCell>
-              <TableCell align="center" sx={{ color: matchResult(match).color, fontWeight: 'bold' }}>
-                {matchResult(match).display}
-              </TableCell>
-              <TableCell align="right">
-                <a
-                  href={`https://leetify.com/app/match-details/${match.id}/overview/`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <img src={Leetify} alt="Leetify" style={{ width: '30px', height: '30px' }} />
-                </a>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    )
-  }
-
-  return (
-    <React.Fragment>
-      <TableRow
-        onClick={player.matches.length > 0 ? () => setOpen(!open) : undefined}
-        sx={{ '& > *': { borderBottom: 'unset' }, cursor: player.matches.length > 0 ? 'pointer' : 'auto' }}
-      >
-        <TableCell sx={cellStyle}>
-          {player.matches.length > 0 && (
-            <IconButton aria-label="expand row" size="small" onClick={() => setOpen(!open)}>
-              {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-            </IconButton>
-          )}
-        </TableCell>
-        <TableCell sx={cellStyle} component="th" scope="row">
-          <a target="_blank" href={`https://steamcommunity.com/profiles/${player.steamId}`} rel="noopener noreferrer">
-            <img height={40} width={40} alt="profilPic" src={player.profilePictureUrl} />
-          </a>
-        </TableCell>
-        <TableCell sx={cellStyle}>{player.name}</TableCell>
-        <TableCell sx={cellStyle} align="right">
-          {!vsMatches.length ? '0' : `${vsMatches.length} (${Math.round(vs_perc)}%)`}
-        </TableCell>
-        <TableCell sx={cellStyle} align="right">
-          {!withMatches.length ? '0' : `${withMatches.length} (${Math.round(with_perc)}%)`}
-        </TableCell>
-        <TableCell sx={cellStyle} align="right">
-          <div
-            style={{
-              display: 'flex',
-              gap: '10px',
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'flex-end'
-            }}
-          >
-            {typeof player.faceit === 'object' && (
-              <a
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginRight: 2,
-                  gap: 8,
-                  textDecoration: 'none',
-                  color: isDark ? 'white' : 'black'
-                }}
-                href={player.faceit.faceit_url.replace('{lang}', 'en')}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-              >
-                ({elo}
-                <EloIcon />)<img alt="faceit lvl" src={getFaceitImage(elo)} width={23} height={23}></img>
-              </a>
-            )}
-            {player.faceit === 'timeout' && (
-              <Tooltip title="Faceit API Timeout">
-                <WarningIcon
-                  style={{ cursor: 'pointer' }}
-                  color="warning"
-                  onClick={(e) => {
-                    props.fetchPlayer(player.steamId)
-                    e.stopPropagation()
-                  }}
-                />
-              </Tooltip>
-            )}
-            <a
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              href={'https://csrep.gg/player/' + player.steamId}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <img src={Csrep} alt="CSrep" style={{ width: '25px', height: '25px' }} />
-            </a>
-            <a
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              href={'https://leetify.com/app/profile/' + player.steamId}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <img src={Leetify} alt="Leetify" style={{ width: '30px', height: '30px' }} />
-            </a>
-            <a
-              href={'https://csstats.gg/player/' + player.steamId}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <img src={'https://csstats.gg/favicon.ico'} alt="Leetify" height={28} width={28} />
-            </a>
-          </div>
-        </TableCell>
-        <TableCell sx={cellStyle} align="right">
-          <IconButton
-            onClick={() => setPlayers((players) => [...players.filter((p) => p.steamId !== player.steamId)])}
-            aria-label="delete"
-            color="primary"
-          >
-            <DeleteIcon />
-          </IconButton>
-        </TableCell>
-      </TableRow>
-      <TableRow>
-        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
-          <Collapse in={open} timeout="auto" unmountOnExit>
-            <Box sx={{ margin: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {vsMatches.length > 0 && (
-                <>
-                  <Typography variant="h6" gutterBottom component="div">
-                    Against
-                  </Typography>
-                  <HistoryTable matches={vsMatches} />{' '}
-                </>
-              )}
-              {withMatches.length > 0 && (
-                <>
-                  <Typography variant="h6" gutterBottom component="div">
-                    Together
-                  </Typography>
-                  <HistoryTable matches={withMatches} />{' '}
-                </>
-              )}
-            </Box>
-          </Collapse>
-        </TableCell>
-      </TableRow>
-    </React.Fragment>
-  )
-}
+import { Player } from '../types'
+import { PlayerRow } from './PlayerRow'
 
 export const PlayerTable = ({
   players,
   mySteamIds,
   setPlayers,
-  fetchPlayer
+  fetchPlayer,
 }: {
   players: Player[]
   mySteamIds: string[]
   setPlayers: React.Dispatch<React.SetStateAction<Player[]>>
   fetchPlayer: (id: string) => Promise<void>
 }) => {
+  const theme = useTheme()
+  const isDark = theme.palette.mode === 'dark'
+
   return (
     <TableContainer
       component={Paper}
-      sx={{ maxWidth: '75%', backgroundColor: (theme) => (theme.palette.mode === 'dark' ? '#1e1e1e' : 'white') }}
+      elevation={0}
+      sx={{
+        width: { xs: '100%', sm: '90%', md: '80%', lg: '75%' },
+        maxWidth: 1100,
+        borderRadius: 2,
+        overflow: 'hidden',
+      }}
     >
-      <Table aria-label="collapsible table">
+      <Table aria-label="player table">
         <TableHead>
-          <TableRow>
-            <TableCell sx={{ width: '0%' }} />
-            <TableCell sx={{ width: '10%' }} />
-            <TableCell sx={{ width: '30%' }}>Name</TableCell>
-            <TableCell sx={{ width: '10%' }} align="right">
+          <TableRow sx={{ backgroundColor: isDark ? '#0d1117' : '#f8fafc' }}>
+            <TableCell sx={{ py: 1.25, pl: 1, width: 36, border: 0 }} />
+            <TableCell
+              colSpan={2}
+              sx={{ py: 1.25, fontWeight: 700, fontSize: '0.75rem', color: 'text.secondary', letterSpacing: '0.05em', textTransform: 'uppercase', border: 0 }}
+            >
+              Player
+            </TableCell>
+            <TableCell
+              align="right"
+              sx={{ py: 1.25, fontWeight: 700, fontSize: '0.75rem', color: 'text.secondary', letterSpacing: '0.05em', textTransform: 'uppercase', border: 0 }}
+            >
               VS
             </TableCell>
-            <TableCell sx={{ width: '10%' }} align="right">
+            <TableCell
+              align="right"
+              sx={{ py: 1.25, fontWeight: 700, fontSize: '0.75rem', color: 'text.secondary', letterSpacing: '0.05em', textTransform: 'uppercase', border: 0 }}
+            >
               With
             </TableCell>
-            <TableCell sx={{ width: '25%' }} align="right">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
-                <img
-                  src={Csrep}
-                  alt="CSRep"
-                  style={{ width: '25px', height: '25px', cursor: 'pointer' }}
-                  onClick={() => {
-                    for (const player of players) {
-                      window.open('https://csrep.gg/player/' + player.steamId, '_blank')
-                    }
-                  }}
-                />
-                <img
-                  src={Leetify}
-                  alt="Leetify"
-                  style={{ width: '30px', height: '30px', cursor: 'pointer' }}
-                  onClick={() => {
-                    for (const player of players) {
-                      window.open('https://leetify.com/app/profile/' + player.steamId, '_blank')
-                    }
-                  }}
-                />
-                Links
-              </div>
+            <TableCell align="right" sx={{ py: 1.25, border: 0 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1 }}>
+                <Tooltip title="Open all on CSRep">
+                  <img
+                    src={Csrep}
+                    alt="CSRep all"
+                    style={{ width: 22, height: 22, cursor: 'pointer', opacity: 0.7 }}
+                    onClick={() => players.forEach((p) => window.open(`https://csrep.gg/player/${p.steamId}`, '_blank'))}
+                  />
+                </Tooltip>
+                <Tooltip title="Open all on Leetify">
+                  <img
+                    src={Leetify}
+                    alt="Leetify all"
+                    style={{ width: 24, height: 24, cursor: 'pointer', opacity: 0.7 }}
+                    onClick={() => players.forEach((p) => window.open(`https://leetify.com/app/profile/${p.steamId}`, '_blank'))}
+                  />
+                </Tooltip>
+              </Box>
             </TableCell>
-            <TableCell sx={{ width: '10%' }} align="right">
-              <IconButton onClick={() => setPlayers([])} aria-label="delete" color="primary">
-                <DeleteIcon />
-              </IconButton>
+            <TableCell align="right" sx={{ py: 1.25, pr: 1, border: 0 }}>
+              <Tooltip title="Remove all">
+                <IconButton
+                  size="small"
+                  aria-label="Remove all players"
+                  onClick={() => setPlayers([])}
+                  sx={{ opacity: 0.5, '&:hover': { opacity: 1, color: 'error.main' } }}
+                >
+                  <DeleteOutlineIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
             </TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {players.map((player) => (
-            <Row
-              key={player.name}
+            <PlayerRow
+              key={player.steamId}
               player={player}
               mySteamIds={mySteamIds}
               setPlayers={setPlayers}

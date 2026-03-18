@@ -1,51 +1,91 @@
 import SaveIcon from '@mui/icons-material/Save'
 import {
   Autocomplete,
+  Box,
+  Button,
   Chip,
   Dialog,
-  DialogActions,
   DialogContent,
   DialogTitle,
-  IconButton,
-  TextField
+  TextField,
+  Typography,
 } from '@mui/material'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
-export const SteamIdDialog = ({ open, setOpen }: { open: boolean; setOpen: (open: boolean) => void }) => {
-  const [steamIds, setSteamIds] = useState(JSON.parse(localStorage.getItem('mySteamIds') || '[]'))
+interface SteamIdDialogProps {
+  open: boolean
+  onClose: () => void
+  steamIds: string[]
+  onSave: (ids: string[]) => void
+}
+
+export const SteamIdDialog = ({ open, onClose, steamIds, onSave }: SteamIdDialogProps) => {
+  const [localIds, setLocalIds] = useState(steamIds)
+
+  useEffect(() => {
+    if (open) setLocalIds(steamIds)
+  }, [open, steamIds])
 
   const handleSave = () => {
-    localStorage.setItem('mySteamIds', JSON.stringify(steamIds))
-    setOpen(false)
+    onSave(localIds)
+    onClose()
   }
 
   return (
-    <Dialog open={open}>
-      <DialogTitle>Set My Steam64IDs</DialogTitle>
-      <DialogContent style={{ width: 400 }}>
+    <Dialog open={open} onClose={onClose} PaperProps={{ sx: { borderRadius: 2, width: 420, maxWidth: '95vw' } }}>
+      <DialogTitle sx={{ pb: 0, pt: 3, px: 3 }}>
+        <Typography variant="h6" fontWeight={700}>
+          My Steam IDs
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          Enter your Steam64 IDs to track your match history.
+        </Typography>
+      </DialogTitle>
+      <DialogContent sx={{ px: 3, pt: 2, pb: 3 }}>
         <Autocomplete
           multiple
-          id="tags-filled"
           options={[] as string[]}
           freeSolo
           renderTags={(value: readonly string[], getTagProps) =>
             value.map((option: string, index: number) => {
               const { key, ...tagProps } = getTagProps({ index })
-              return <Chip variant="outlined" label={option} key={key} {...tagProps} />
+              return (
+                <Chip
+                  variant="outlined"
+                  label={option}
+                  key={key}
+                  {...tagProps}
+                  size="small"
+                  sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}
+                />
+              )
             })
           }
-          value={steamIds}
-          onChange={(_, newValue) => setSteamIds(newValue)}
+          value={localIds}
+          onChange={(_, newValue) => setLocalIds(newValue)}
           renderInput={(params) => (
-            <TextField {...params} variant="standard" label="steam64ids (press enter to add)" placeholder="123" />
+            <TextField
+              {...params}
+              variant="outlined"
+              placeholder="Paste Steam64 ID and press Enter"
+              size="small"
+              sx={{ mt: 2 }}
+            />
           )}
         />
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+          <Button
+            variant="contained"
+            disableElevation
+            disabled={localIds.length === 0}
+            onClick={handleSave}
+            startIcon={<SaveIcon />}
+            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+          >
+            Save
+          </Button>
+        </Box>
       </DialogContent>
-      <DialogActions>
-        <IconButton disabled={steamIds.length === 0} onClick={handleSave} aria-label="save" color="primary">
-          <SaveIcon />
-        </IconButton>
-      </DialogActions>
     </Dialog>
   )
 }

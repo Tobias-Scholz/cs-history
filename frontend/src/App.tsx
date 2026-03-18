@@ -1,219 +1,184 @@
 import { Brightness4, Brightness7, Search } from '@mui/icons-material'
+import EditIcon from '@mui/icons-material/Edit'
+import PersonIcon from '@mui/icons-material/Person'
 import {
   Box,
-  createTheme,
+  Chip,
   CssBaseline,
   IconButton,
   InputAdornment,
   LinearProgress,
   TextField,
   ThemeProvider,
-  useMediaQuery
+  Tooltip,
+  Typography,
+  useMediaQuery,
 } from '@mui/material'
-import { useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
-import './App.css'
+import { useMemo, useState } from 'react'
 import { PlayerTable } from './components/PlayerTable'
 import { SteamIdDialog } from './components/SteamIdDialog'
-import EditIcon from '@mui/icons-material/Edit'
-
-export interface Match {
-  vs: boolean
-  id: string
-  type: string
-  players_team1: string[]
-  players_team2: string[]
-  rounds_team1: number
-  rounds_team2: number
-  map: string
-  rating: number
-  date: string
-}
-
-type FaceitPlayerInfo = {
-  player_id: string
-  nickname: string
-  avatar: string
-  country: string
-  cover_image: string
-  platforms: {
-    steam: string
-  }
-  games: {
-    csgo?: GameInfo
-    cs2?: GameInfo
-  }
-  settings: {
-    language: string
-  }
-  friends_ids: string[]
-  new_steam_id: string
-  steam_id_64: string
-  steam_nickname: string
-  memberships: string[]
-  faceit_url: string
-  membership_type: string
-  cover_featured_image: string
-  infractions: Record<string, unknown>
-  verified: boolean
-  activated_at: string
-}
-
-type GameInfo = {
-  region: string
-  game_player_id: string
-  skill_level: number
-  faceit_elo: number
-  game_player_name: string
-  skill_level_label: string
-  regions: Record<string, unknown>
-  game_profile_id: string
-}
-
-export interface Player {
-  steamId: string
-  name: string
-  profilePictureUrl: string
-  matches: Match[]
-  faceit?: FaceitPlayerInfo | 'timeout'
-}
-
-const baseUrl = 'https://cs-history.netlify.app'
-// const baseUrl = 'http://localhost:8888'
+import { useMySteamIds } from './hooks/useMySteamIds'
+import { usePlayerFetch } from './hooks/usePlayerFetch'
+import { createAppTheme } from './theme'
+import { Player } from './types'
 
 function App() {
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)')
   const [darkMode, setDarkMode] = useState(prefersDarkMode)
-
-  const theme = createTheme({
-    palette: {
-      mode: darkMode ? 'dark' : 'light'
-    }
-  })
-
   const [input, setInput] = useState('')
   const [players, setPlayers] = useState<Player[]>([])
-  const [loading, setLoading] = useState(false)
-  const mySteamIds = JSON.parse(localStorage.getItem('mySteamIds') || '[]') as string[]
+  const [dialogOpen, setDialogOpen] = useState(() => !localStorage.getItem('mySteamIds'))
 
-  const [open, setOpen] = useState(!localStorage.getItem('mySteamIds'))
+  const { steamIds: mySteamIds, save: saveSteamIds } = useMySteamIds()
+  const { fetchPlayer, loading } = usePlayerFetch(mySteamIds, setPlayers)
 
-  const queryClient = useQueryClient()
+  const theme = useMemo(() => createAppTheme(darkMode), [darkMode])
 
-  const fetchPlayer = async (query: string) => {
-    if (!query || !mySteamIds) return
-    setLoading(true)
-    const response = await queryClient.fetchQuery<Response>({
-      queryKey: ['history', query],
-      retry: 2,
-      queryFn: () =>
-        fetch(baseUrl + '/.netlify/functions/history', {
-          method: 'POST',
-          body: JSON.stringify({ mySteamIds, query })
-        }),
-      staleTime: 0
-    })
+  const handleSearch = (query: string) => {
+    const trimmed = query.trim()
+    if (!trimmed) return
+    fetchPlayer(trimmed)
     setInput('')
-    setLoading(false)
-    if (response.status !== 200) return
-
-    const player = (await response.json()) as Player
-    setPlayers((players) => [...players.filter((p) => p.steamId !== player.steamId), player])
   }
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <div
-        style={{
-          height: '100%',
-          minHeight: '100vh',
-          ...(theme.palette.mode === 'light' && { backgroundColor: '#F7F7F7' })
-        }}
-      >
+      <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+        {/* Header */}
         <Box
           sx={{
+            px: { xs: 2, sm: 3 },
+            py: 1.5,
+            borderBottom: 1,
+            borderColor: 'divider',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            backgroundColor: 'background.paper',
+            position: 'sticky',
+            top: 0,
+            zIndex: 10,
+          }}
+        >
+          <Typography
+            variant="h6"
+            sx={{ fontWeight: 800, color: 'primary.main', letterSpacing: '-0.5px', userSelect: 'none' }}
+          >
+            CS History
+          </Typography>
+
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {mySteamIds.length > 0 && (
+              <Tooltip
+                title={
+                  <Box>
+                    {mySteamIds.map((id) => (
+                      <div key={id}>{id}</div>
+                    ))}
+                  </Box>
+                }
+              >
+                <Chip
+                  icon={<PersonIcon sx={{ fontSize: '14px !important' }} />}
+                  label={`${mySteamIds.length} ID${mySteamIds.length > 1 ? 's' : ''}`}
+                  size="small"
+                  onClick={() => setDialogOpen(true)}
+                  sx={{ cursor: 'pointer', fontSize: '0.7rem' }}
+                />
+              </Tooltip>
+            )}
+            <Tooltip title="Edit Steam IDs">
+              <IconButton size="small" aria-label="Edit Steam IDs" onClick={() => setDialogOpen(true)} color="inherit">
+                <EditIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={darkMode ? 'Light mode' : 'Dark mode'}>
+              <IconButton
+                size="small"
+                aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+                onClick={() => setDarkMode((v) => !v)}
+                color="inherit"
+              >
+                {darkMode ? <Brightness7 fontSize="small" /> : <Brightness4 fontSize="small" />}
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </Box>
+
+        {/* Main content */}
+        <Box
+          sx={{
+            flex: 1,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: '75px',
-            paddingTop: '75px'
+            pt: { xs: 6, sm: 10 },
+            pb: 8,
+            gap: 6,
+            px: 2,
           }}
         >
-          <TextField
-            fullWidth
-            placeholder="Search..."
-            variant="outlined"
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                fetchPlayer(input)
-                event.stopPropagation()
-              }
-            }}
-            onPaste={(event) => {
-              const pastedText = event.clipboardData.getData('text')
-              fetchPlayer(pastedText)
-              event.stopPropagation()
-            }}
-            sx={{
-              width: { xs: '90%', sm: '70%', md: '50%' },
-              maxWidth: 800,
-              borderRadius: '50px',
-              '& .MuiOutlinedInput-root': {
-                borderRadius: '50px',
-                paddingLeft: '10px',
-                paddingRight: '20px'
-              }
-            }}
-            slotProps={{
-              input: {
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <Search />
-                  </InputAdornment>
-                )
-              }
-            }}
-          />
-          {players.length > 0 ? (
-            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <PlayerTable
-                players={players}
-                mySteamIds={mySteamIds}
-                setPlayers={setPlayers}
-                fetchPlayer={fetchPlayer}
-              />
-              {loading && <LinearProgress color="secondary" style={{ width: '75%' }} />}
-            </div>
-          ) : (
-            loading && <LinearProgress color="secondary" style={{ width: '75%' }} />
+          {/* Search */}
+          <Box sx={{ width: '100%', maxWidth: 600 }}>
+            <TextField
+              fullWidth
+              placeholder="Steam ID, profile URL, or Leetify link..."
+              variant="outlined"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSearch(input)
+                  e.stopPropagation()
+                }
+              }}
+              onPaste={(e) => {
+                e.preventDefault()
+                handleSearch(e.clipboardData.getData('text'))
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '50px',
+                  backgroundColor: 'background.paper',
+                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.main' },
+                },
+              }}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search sx={{ color: 'text.secondary' }} />
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
+          </Box>
+
+          {loading && (
+            <Box sx={{ width: '100%', maxWidth: 600 }}>
+              <LinearProgress color="primary" sx={{ borderRadius: 4 }} />
+            </Box>
+          )}
+
+          {players.length > 0 && (
+            <PlayerTable
+              players={players}
+              mySteamIds={mySteamIds}
+              setPlayers={setPlayers}
+              fetchPlayer={fetchPlayer}
+            />
           )}
         </Box>
-        <SteamIdDialog open={open} setOpen={setOpen} />
-        <div style={{ position: 'fixed', bottom: 0, right: 0, textAlign: 'right', fontSize: 12 }}>
-          <IconButton color="primary" onClick={() => setOpen(true)} aria-label="edit">
-            <EditIcon />
-          </IconButton>
-          My SteamIDs
-          <br />
-          {mySteamIds.map((s, index) => (
-            <span key={index}>
-              {s}
-              <br />
-            </span>
-          ))}
-          <IconButton
-            onClick={() => setDarkMode(!darkMode)}
-            sx={{ ml: 1 }}
-            color="inherit"
-            aria-label="toggle dark mode"
-          >
-            {darkMode ? <Brightness7 /> : <Brightness4 />}
-          </IconButton>
-        </div>
-      </div>
+      </Box>
+
+      <SteamIdDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        steamIds={mySteamIds}
+        onSave={saveSteamIds}
+      />
     </ThemeProvider>
   )
 }

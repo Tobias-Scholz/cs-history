@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import './index.css'
 import App from './App'
+import { DebugPage } from './components/DebugPage'
 import reportWebVitals from './reportWebVitals'
 
 import '@fontsource/roboto/300.css'
@@ -12,10 +13,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 const queryClient = new QueryClient()
 
+const isDebug = window.location.pathname === '/cs-history/debug'
+
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement)
 root.render(
   <QueryClientProvider client={queryClient}>
-    <App />
+    {isDebug ? <DebugPage /> : <App />}
   </QueryClientProvider>
 )
 

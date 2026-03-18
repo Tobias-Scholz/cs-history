@@ -7,10 +7,29 @@ export const config: Config = {
   schedule: '0 */3 * * *'
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function logError(sql: any, source: string, message: string, details?: string) {
+  try {
+    await sql`INSERT INTO error_logs (source, message, details) VALUES (${source}, ${message}, ${details ?? null})`
+  } catch (e) {
+    console.error('Failed to log error:', e)
+  }
+}
+
 export default async (req: Request) => {
   if (!process.env.POSTGRES_CONNECTION_STRING || !process.env.LEETIFY_TOKEN) throw new Error('missing env')
 
   const sql = neon(process.env.POSTGRES_CONNECTION_STRING)
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS error_logs (
+      id SERIAL PRIMARY KEY,
+      created_at TIMESTAMP DEFAULT NOW(),
+      source VARCHAR(255),
+      message TEXT,
+      details TEXT
+    )
+  `
 
   const lastEntry = await sql`SELECT * FROM matches ORDER BY date DESC LIMIT 1`
   let lastDate = (lastEntry[0]?.date as Date) || sub(new Date(), { days: 7 })
@@ -36,7 +55,10 @@ export default async (req: Request) => {
     accounts.map((account) =>
       fetchProfileHistory(lastDate, account)
         .then((matches) => processMatches(matches, sql, account.name))
-        .catch((error) => console.error(error))
+        .catch((error) => {
+          console.error(error)
+          return logError(sql, `fetchProfileHistory:${account.name}`, String(error))
+        })
     )
   )
 }
@@ -85,22 +107,27 @@ async function processMatches(matches, sql, name: string) {
 
     console.log(name, 'Fetching match info')
 
-    const match = await axios
-      .get(`https://api.leetify.com/api/games/${id}`, {
-        headers: {
-          Authorization: 'Bearer ' + process.env.LEETIFY_TOKEN
-        }
-      })
-      .then((result) => result.data)
+    try {
+      const match = await axios
+        .get(`https://api.leetify.com/api/games/${id}`, {
+          headers: {
+            Authorization: 'Bearer ' + process.env.LEETIFY_TOKEN
+          }
+        })
+        .then((result) => result.data)
 
-    let players = match.playerStats
+      let players = match.playerStats
 
-    if (match.playerStats[0]?.initialTeamNumber === undefined) {
-      await processSkeletonMatch(match, sql)
-      continue
+      if (match.playerStats[0]?.initialTeamNumber === undefined) {
+        await processSkeletonMatch(match, sql)
+        continue
+      }
+
+      await processMatch(match, players, sql)
+    } catch (error) {
+      console.error(name, 'Failed to process match', id, error)
+      await logError(sql, `processMatches:${name}`, `Failed to process match ${id}: ${String(error)}`)
     }
-
-    await processMatch(match, players, sql)
   }
 }
 
