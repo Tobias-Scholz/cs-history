@@ -20,5 +20,11 @@ export default async (req: Request) => {
     sql`SELECT * FROM error_logs ORDER BY created_at DESC LIMIT 100`
   ])
 
-  return Response.json({ matches, errorLogs })
+  return new Response(JSON.stringify({ matches, errorLogs }), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+    },
+  })
 }
