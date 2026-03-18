@@ -10,8 +10,8 @@ const LEETIFY_BASE_URL = 'https://api-public.cs-prod.leetify.com'
 /** Delay helper to avoid hitting API rate limits */
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
-const DELAY_BETWEEN_MATCH_LIST_REQUESTS_MS = 500
-const DELAY_BETWEEN_MATCH_DETAIL_REQUESTS_MS = 500
+const DELAY_BETWEEN_MATCH_LIST_REQUESTS_MS = 0
+const DELAY_BETWEEN_MATCH_DETAIL_REQUESTS_MS = 250
 
 const accounts = [
   { id: '76561198092541763', name: 'Tobeyyy' },
@@ -53,9 +53,12 @@ export default async (_req: Request) => {
   let totalInserted = 0
   let totalSkipped = 0
 
+  // Randomize order so repeated runs don't always hit the same accounts first
+  const shuffled = [...accounts].sort(() => Math.random() - 0.5)
+
   // Process accounts sequentially to stay well within rate limits
-  for (let i = 0; i < accounts.length; i++) {
-    const account = accounts[i]
+  for (let i = 0; i < shuffled.length; i++) {
+    const account = shuffled[i]
 
     if (i > 0) {
       console.log(`Waiting ${DELAY_BETWEEN_MATCH_LIST_REQUESTS_MS}ms before next account...`)
