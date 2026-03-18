@@ -10,8 +10,8 @@ const LEETIFY_BASE_URL = 'https://api-public.cs-prod.leetify.com'
 /** Delay helper to avoid hitting API rate limits */
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
-const DELAY_BETWEEN_MATCH_LIST_REQUESTS_MS = 2000
-const DELAY_BETWEEN_MATCH_DETAIL_REQUESTS_MS = 1500
+const DELAY_BETWEEN_MATCH_LIST_REQUESTS_MS = 500
+const DELAY_BETWEEN_MATCH_DETAIL_REQUESTS_MS = 500
 
 const accounts = [
   { id: '76561198092541763', name: 'Tobeyyy' },
